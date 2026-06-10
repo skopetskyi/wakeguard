@@ -2,10 +2,13 @@ import AppKit
 import WakeGuardCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let controller = SessionController(spawner: CaffeinateSpawner(),
-                                       leaseStore: LeaseStore(),
-                                       limits: SafetyLimits())
-    private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: SafetyLimits())
+    // Single source of truth for limits: pre-flight, monitor, and controller
+    // must never read diverging values.
+    private let limits = SafetyLimits()
+    lazy var controller = SessionController(spawner: CaffeinateSpawner(),
+                                            leaseStore: LeaseStore(),
+                                            limits: limits)
+    private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: limits)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
 
@@ -38,15 +41,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func startSession(minutes: Int, displayPolicy: SessionConfig.DisplayPolicy,
                       lidPolicy: SessionConfig.LidPolicy) {
         if lidPolicy == .stayAwakeWhenClosed {
+            if ProcessInfo.processInfo.thermalState == .critical {
+                Notify.send(title: "WakeGuard",
+                            body: "Refusing closed-lid mode: thermal state is critical. Let the Mac cool down first.")
+                return
+            }
             let battery = BatteryStatusParser.current()
             if battery.source == .battery {
-                guard let percent = battery.percent, percent >= SafetyLimits().softBatteryPercent else {
+                guard let percent = battery.percent, percent >= limits.softBatteryPercent else {
                     Notify.send(title: "WakeGuard",
                                 body: "Refusing closed-lid mode: battery too low or unreadable. Plug in first.")
                     return
                 }
                 Notify.send(title: "WakeGuard",
-                            body: "Closed-lid mode on battery (\(battery.percent!)%). Will auto-stop below \(SafetyLimits().softBatteryPercent)%.")
+                            body: "Closed-lid mode on battery (\(percent)%). Will auto-stop below \(limits.softBatteryPercent)%.")
             }
         }
         let config = SessionConfig(duration: TimeInterval(minutes * 60),
