@@ -22,7 +22,9 @@ struct SystemStatus {
             return ("System: awake ✓, closed-lid ✓ (SleepDisabled 1)", true)
         }
         if caffeinateAssertionActive {
-            return ("System: awake ✓ (caffeinate assertion held)", true)
+            // Substring match over ALL processes — hedged wording on purpose:
+            // another process's caffeinate would also match.
+            return ("System: awake ✓ (a caffeinate assertion is present)", true)
         }
         return ("⚠️ No keep-awake assertion found", false)
     }
