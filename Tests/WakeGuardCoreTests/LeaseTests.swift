@@ -23,6 +23,16 @@ final class LeaseTests: XCTestCase {
         XCTAssertFalse(makeLease(expiresIn: 3600).isValid(now: now))
     }
 
+    func testExactlyMaxTTLIsValid() {
+        // Pins the inclusive upper bound (remaining <= maxTTL).
+        XCTAssertTrue(makeLease(expiresIn: 60).isValid(now: now))
+    }
+
+    func testExactlyExpiredIsInvalid() {
+        // Pins the strict lower bound (remaining > 0).
+        XCTAssertFalse(makeLease(expiresIn: 0).isValid(now: now))
+    }
+
     func testRoundTripsThroughStore() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("wakeguard-test-\(UUID().uuidString).json")

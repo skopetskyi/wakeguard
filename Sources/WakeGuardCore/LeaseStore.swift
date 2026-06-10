@@ -9,6 +9,7 @@ public struct LeaseStore {
 
     public func write(_ lease: Lease) throws {
         let encoder = JSONEncoder()
+        // .iso8601 truncates to whole seconds — fine for a 30s TTL, and always rounds toward expiry.
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(lease)
         try data.write(to: url, options: .atomic)
