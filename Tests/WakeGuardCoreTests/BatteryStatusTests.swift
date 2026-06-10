@@ -31,4 +31,12 @@ final class BatteryStatusTests: XCTestCase {
         let status = BatteryStatusParser.parse("")
         XCTAssertEqual(status, BatteryStatus(source: .battery, percent: nil))
     }
+
+    func testSingleDigitPercent() {
+        let output = """
+        Now drawing from 'Battery Power'
+         -InternalBattery-0 (id=23068771)\t5%; discharging; 0:21 remaining present: true
+        """
+        XCTAssertEqual(BatteryStatusParser.parse(output), BatteryStatus(source: .battery, percent: 5))
+    }
 }
