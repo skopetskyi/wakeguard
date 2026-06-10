@@ -54,6 +54,12 @@ public final class SessionController {
         self.limits = limits
     }
 
+    deinit {
+        // Safety net: a controller deallocated mid-session must not leave a
+        // running caffeinate or a live lease behind.
+        stopInternal(reason: "Controller deallocated", notify: false)
+    }
+
     public func start(_ config: SessionConfig) throws {
         stopInternal(reason: "Replaced by new session", notify: activeSession != nil)
 
