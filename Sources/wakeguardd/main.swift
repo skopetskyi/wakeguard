@@ -5,6 +5,9 @@ let pollInterval: TimeInterval = 5
 let leaseURL = URL(fileURLWithPath: Lease.defaultPath)
 let store = LeaseStore(url: leaseURL)
 let timestampFormatter = ISO8601DateFormatter()
+// Serial control queue: the SIGTERM revert and the poll handler must never
+// interleave, or a tick could re-enable disablesleep between revert and exit.
+let controlQueue = DispatchQueue(label: "wakeguardd.control")
 
 func log(_ message: String) {
     // launchd redirects stdout to /var/log/wakeguardd.log (see plist).
@@ -45,7 +48,7 @@ log("wakeguardd starting — reverting to disablesleep=0")
 setSleepDisabled(false)
 
 signal(SIGTERM, SIG_IGN)
-let sigterm = DispatchSource.makeSignalSource(signal: SIGTERM)
+let sigterm = DispatchSource.makeSignalSource(signal: SIGTERM, queue: controlQueue)
 sigterm.setEventHandler {
     log("SIGTERM — reverting to disablesleep=0 and exiting")
     setSleepDisabled(false)
@@ -53,7 +56,7 @@ sigterm.setEventHandler {
 }
 sigterm.resume()
 
-let timer = DispatchSource.makeTimerSource()
+let timer = DispatchSource.makeTimerSource(queue: controlQueue)
 timer.schedule(deadline: .now(), repeating: pollInterval)
 timer.setEventHandler {
     let desired = desiredSleepDisabled(now: Date())
