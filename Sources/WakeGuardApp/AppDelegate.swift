@@ -62,6 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try controller.start(config)
             safetyMonitor.sessionDidStart()
+            verifyClosedLidTookEffect()
             if lidPolicy == .stayAwakeWhenClosed {
                 Notify.send(title: "WakeGuard",
                             body: "Closed-lid mode active for \(minutes) min. Lid can be closed.")
@@ -74,6 +75,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func stopSession() {
         controller.stop(reason: "Stopped from menu")
+    }
+
+    /// Closed-lid verification: 8s after start (daemon polls every 5s), confirm
+    /// the system actually has SleepDisabled=1. If not, the lid is NOT safe to close.
+    private func verifyClosedLidTookEffect() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+            guard let self,
+                  let session = self.controller.activeSession,
+                  session.config.lidPolicy == .stayAwakeWhenClosed else { return }
+            if !SystemStatus.probe().sleepDisabled {
+                Notify.send(title: "WakeGuard — NOT SAFE TO CLOSE LID",
+                            body: "disablesleep did not engage. Is wakeguardd installed? (scripts/install-daemon.sh)")
+            }
+        }
     }
 
     func sleepDisplayNow() {

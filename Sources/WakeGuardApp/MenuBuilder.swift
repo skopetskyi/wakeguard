@@ -18,6 +18,11 @@ enum MenuBuilder {
                                     action: nil, keyEquivalent: "")
             status.isEnabled = false
             menu.addItem(status)
+            let probe = SystemStatus.probe()
+            let line = probe.menuLine(expectClosedLid: session.config.lidPolicy == .stayAwakeWhenClosed)
+            let systemItem = NSMenuItem(title: line.text, action: nil, keyEquivalent: "")
+            systemItem.isEnabled = false
+            menu.addItem(systemItem)
             menu.addItem(item(title: "Stop Session", action: #selector(AppDelegate.menuStop), target: app))
         } else {
             let start = NSMenuItem(title: "Start Session", action: nil, keyEquivalent: "")
