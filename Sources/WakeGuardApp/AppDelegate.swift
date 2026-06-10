@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = SessionController(spawner: CaffeinateSpawner(),
                                        leaseStore: LeaseStore(),
                                        limits: SafetyLimits())
+    private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: SafetyLimits())
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
 
@@ -24,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         RunLoop.main.add(timer, forMode: .common)
         refreshTimer = timer
 
+        safetyMonitor.start()
         rebuildMenu()
     }
 
@@ -35,10 +37,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func startSession(minutes: Int, displayPolicy: SessionConfig.DisplayPolicy,
                       lidPolicy: SessionConfig.LidPolicy) {
+        if lidPolicy == .stayAwakeWhenClosed {
+            let battery = BatteryStatusParser.current()
+            if battery.source == .battery {
+                guard let percent = battery.percent, percent >= SafetyLimits().softBatteryPercent else {
+                    Notify.send(title: "WakeGuard",
+                                body: "Refusing closed-lid mode: battery too low or unreadable. Plug in first.")
+                    return
+                }
+                Notify.send(title: "WakeGuard",
+                            body: "Closed-lid mode on battery (\(battery.percent!)%). Will auto-stop below \(SafetyLimits().softBatteryPercent)%.")
+            }
+        }
         let config = SessionConfig(duration: TimeInterval(minutes * 60),
                                    displayPolicy: displayPolicy, lidPolicy: lidPolicy)
         do {
             try controller.start(config)
+            safetyMonitor.sessionDidStart()
             if lidPolicy == .stayAwakeWhenClosed {
                 Notify.send(title: "WakeGuard",
                             body: "Closed-lid mode active for \(minutes) min. Lid can be closed.")
