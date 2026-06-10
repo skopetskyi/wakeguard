@@ -30,6 +30,8 @@ all of them end with normal sleep restored within ~35 seconds, plus:
 ## Emergency
 If anything ever looks wrong:
     ./scripts/panic-restore-sleep.sh
+(The script also quits a running WakeGuardApp — a live app would otherwise
+re-create the lease and the daemon would re-enable disablesleep.)
 
 ## Uninstall
     ./scripts/uninstall-daemon.sh
