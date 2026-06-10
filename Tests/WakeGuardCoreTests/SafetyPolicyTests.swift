@@ -60,4 +60,19 @@ final class SafetyPolicyTests: XCTestCase {
         XCTAssertEqual(verdict(battery: BatteryStatus(source: .battery, percent: 5), lid: .normalSleep,
                                startedOnAC: false), .ok)
     }
+
+    func testExactSoftThresholdContinues() {
+        // 30% is the floor itself, not below it.
+        XCTAssertEqual(verdict(battery: BatteryStatus(source: .battery, percent: 30), startedOnAC: false), .ok)
+    }
+
+    func testExactHardCapContinues() {
+        // Pins the strict > comparison: ends only PAST the cap.
+        XCTAssertEqual(verdict(elapsed: limits.maxClosedLidDuration), .ok)
+    }
+
+    func testSeriousThermalWarnsClosedLidSession() {
+        XCTAssertEqual(verdict(thermal: .serious),
+                       .warn("Thermal state is serious — consider ending the session"))
+    }
 }

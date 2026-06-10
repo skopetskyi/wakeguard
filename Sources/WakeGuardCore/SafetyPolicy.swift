@@ -25,6 +25,9 @@ public enum SafetyVerdict: Equatable {
 }
 
 public enum SafetyPolicy {
+    /// Stateless: warn/endSession may be returned on every call while the
+    /// condition holds. Callers are responsible for once-per-session dedup
+    /// of warn notifications.
     public static func evaluate(battery: BatteryStatus,
                                 thermal: SafetyThermalState,
                                 sessionElapsed: TimeInterval,
@@ -37,7 +40,7 @@ public enum SafetyPolicy {
         guard lidPolicy == .stayAwakeWhenClosed else { return .ok }
 
         if sessionElapsed > limits.maxClosedLidDuration {
-            return .endSession("Maximum closed-lid duration (12h) reached")
+            return .endSession("Maximum closed-lid duration (\(Int(limits.maxClosedLidDuration / 3600))h) reached")
         }
         if battery.source == .battery {
             guard let percent = battery.percent else {
@@ -51,6 +54,9 @@ public enum SafetyPolicy {
                     ? .endSession("AC power disconnected")
                     : .warn("AC power disconnected — now on battery (\(percent)%)")
             }
+        }
+        if thermal == .serious {
+            return .warn("Thermal state is serious — consider ending the session")
         }
         return .ok
     }
