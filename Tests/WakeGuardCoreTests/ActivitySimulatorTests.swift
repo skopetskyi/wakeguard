@@ -60,6 +60,14 @@ final class ActivitySimulatorTests: XCTestCase {
         XCTAssertFalse(simulator.isRunning)
     }
 
+    func testStopWithoutStartIsNoOp() {
+        // applicationWillTerminate calls stop() unconditionally — a cold stop
+        // must be a safe no-op, not emit and not flip into a running state.
+        simulator.stop()
+        XCTAssertFalse(simulator.isRunning)
+        XCTAssertEqual(emitter.emitCount, 0)
+    }
+
     // MARK: - Restart after stop
 
     func testStartAfterStopEmitsAgain() {
