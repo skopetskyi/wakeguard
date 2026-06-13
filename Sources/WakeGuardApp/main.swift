@@ -14,6 +14,7 @@ for sig in [SIGTERM, SIGINT] {
     let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
     source.setEventHandler {
         delegate.controller.stop(reason: "Terminated by signal")
+        delegate.activitySimulator.stop()
         exit(0)
     }
     source.resume()

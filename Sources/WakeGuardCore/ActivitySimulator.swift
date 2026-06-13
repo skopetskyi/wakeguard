@@ -1,8 +1,8 @@
 import Foundation
 
 /// Seam for injecting a synthetic user-activity event.
-/// The production implementation posts a HID mouse-move event via CoreGraphics
-/// (lives in WakeGuardApp); tests supply a counting fake.
+/// The production implementation posts an invisible F15 key-down/up event via
+/// CoreGraphics (lives in WakeGuardApp); tests supply a counting fake.
 /// Each `emit()` call resets the system HID idle timer, keeping presence tools
 /// (Slack, Teams, etc.) from marking the user as away.
 public protocol ActivityEmitter {

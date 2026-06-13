@@ -26,9 +26,10 @@ show you as away.
   away thresholds.
 
 **Trade-offs to be aware of:**
-- The F15 event can wake the display. If you also have "Allow Display to Sleep"
-  enabled, the screen may briefly wake each minute; don't combine them if you
-  want the display to stay dark.
+- The F15 event resets the display idle timer, so it can wake the display. If
+  you have "Allow Display to Sleep" enabled, or you've just used "Turn Display
+  Off Now", the screen will briefly wake every 60 seconds. Don't combine these
+  with activity simulation if you want the display to stay dark.
 - On first use macOS may prompt for **Accessibility** or **Input Monitoring**
   permission so that WakeGuard can post synthetic input events. Grant it in
   System Settings → Privacy & Security.
