@@ -9,6 +9,10 @@ enum MenuBuilder {
     static var closedLidMode = false
     static var simulateActivity = false
 
+    // Show the Accessibility-permission hint only the first time activity
+    // simulation is enabled in a given launch, so it isn't a per-toggle nag.
+    static var didHintActivityPermission = false
+
     static func build(for app: AppDelegate) -> NSMenu {
         let menu = NSMenu()
 
@@ -108,8 +112,17 @@ extension AppDelegate {
         MenuBuilder.simulateActivity.toggle()
         if MenuBuilder.simulateActivity {
             activitySimulator.start()
-            Notify.send(title: "WakeGuard",
-                        body: "Activity simulation on — presence stays active (Slack/Teams).")
+            // Synthetic events are silently filtered if WakeGuard lacks
+            // Accessibility/Input-Monitoring permission, so surface that once
+            // up front rather than leaving the user wondering why presence lapses.
+            if MenuBuilder.didHintActivityPermission {
+                Notify.send(title: "WakeGuard",
+                            body: "Activity simulation on — presence stays active (Slack/Teams).")
+            } else {
+                MenuBuilder.didHintActivityPermission = true
+                Notify.send(title: "WakeGuard",
+                            body: "Activity simulation on. If Slack/Teams still go idle, grant WakeGuard Accessibility access in System Settings → Privacy & Security.")
+            }
         } else {
             activitySimulator.stop()
             Notify.send(title: "WakeGuard", body: "Activity simulation off.")
