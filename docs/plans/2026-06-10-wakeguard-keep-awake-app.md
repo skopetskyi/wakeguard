@@ -1897,6 +1897,42 @@ git commit -m "docs: README with fail-safe design notes and e2e test results"
 
 ---
 
+### Task 14: Activity simulation toggle (keep Slack/Teams "active")
+
+On-demand presence keeper. Some chat tools (Slack, Teams) flip you to "away" once the
+**system HID idle timer** crosses a threshold (Teams ~5 min, Slack ~10 min). This feature,
+when toggled on, posts a harmless synthetic input event on a fixed cadence to reset that
+idle timer, so presence stays green. It is **independent of keep-awake sessions** (works with
+or without one) and **off by default** — a menu checkbox the user must explicitly enable.
+
+Design choices (personal-tool scope):
+- **Mechanism:** post an invisible **F15 key** down/up (`CGEvent`, virtual key `0x71`) to
+  `.cghidEventTap`. F15 has no default binding on Mac keyboards, so it is a no-op for the user
+  but registers as user activity for presence tools. No cursor movement, no visible side effect.
+- **Cadence:** every 60 s — comfortably under the tightest presence-away threshold, low overhead.
+- **Testability:** core owns an `ActivityEmitter` protocol + timer-driven `ActivitySimulator`
+  (idempotent `start`/`stop`, emits immediately on start). The real `CGEvent` poster lives in the
+  app target so core stays framework-free and unit-tested with a fake emitter.
+- **Trade-off (documented):** a synthetic event can wake the display, so combining this with
+  "Turn Display Off Now" will keep nudging the display back on. Intended use is presence-while-AFK
+  with the display on. May prompt for Accessibility/Input-Monitoring permission on first post.
+
+**Files:**
+- Create: `Sources/WakeGuardCore/ActivitySimulator.swift` (protocol + simulator)
+- Create: `Tests/WakeGuardCoreTests/ActivitySimulatorTests.swift`
+- Create: `Sources/WakeGuardApp/ActivityEmitterCG.swift` (CGEvent F15 emitter)
+- Modify: `Sources/WakeGuardApp/AppDelegate.swift` (own the simulator, stop on quit)
+- Modify: `Sources/WakeGuardApp/MenuBuilder.swift` (checkbox + toggle action)
+- Modify: `README.md` (document the feature, cadence, and trade-offs)
+
+**Behavior contract:**
+1. `ActivitySimulator.start()` emits one event immediately, then every 60 s; idempotent while running.
+2. `ActivitySimulator.stop()` halts emission; `start()` after `stop()` resumes.
+3. The toggle is independent of session state and persists across menu rebuilds.
+4. The simulator is stopped on app quit alongside the keep-awake session.
+
+---
+
 ## Effort estimate
 
 | Tasks | Content | Estimate |
