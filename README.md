@@ -8,7 +8,30 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
   plus a "Turn Display Off Now" action.
 - Optionally keep the Mac awake **with the lid closed** ("Keep Awake When Lid Closed") —
   requires the wakeguardd daemon.
+- Keep presence tools (Slack, Teams) showing active — see below.
 - Dock icon + countdown badge appear ONLY while a session is active.
+
+## Keep Slack/Teams active
+
+The **"Simulate Activity (Keep Slack/Teams Active)"** menu checkbox posts an
+invisible F15 key down+up event every 60 seconds via CoreGraphics. F15 has no
+default binding on modern Mac keyboards, so the keypress is a no-op for the
+user; it does, however, register as HID user activity, resetting the system
+idle timer that presence tools (Slack, Teams, etc.) rely on to decide when to
+show you as away.
+
+- **Off by default.** Toggle it independently of any keep-awake session — you
+  can run it with or without an active WakeGuard session.
+- **60-second cadence** — well under Teams' ~5-minute and Slack's ~10-minute
+  away thresholds.
+
+**Trade-offs to be aware of:**
+- The F15 event can wake the display. If you also have "Allow Display to Sleep"
+  enabled, the screen may briefly wake each minute; don't combine them if you
+  want the display to stay dark.
+- On first use macOS may prompt for **Accessibility** or **Input Monitoring**
+  permission so that WakeGuard can post synthetic input events. Grant it in
+  System Settings → Privacy & Security.
 
 ## Fail-safe design
 Closed-lid mode works through a dead-man's switch: the app must renew a 30-second

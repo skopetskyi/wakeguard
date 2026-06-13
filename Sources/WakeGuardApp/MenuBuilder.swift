@@ -7,6 +7,7 @@ enum MenuBuilder {
     // Mode toggles persist across menu rebuilds.
     static var allowDisplayOff = false
     static var closedLidMode = false
+    static var simulateActivity = false
 
     static func build(for app: AppDelegate) -> NSMenu {
         let menu = NSMenu()
@@ -48,6 +49,11 @@ enum MenuBuilder {
                              action: #selector(AppDelegate.menuToggleClosedLid), target: app)
         lidToggle.state = closedLidMode ? .on : .off
         menu.addItem(lidToggle)
+
+        let activityToggle = item(title: "Simulate Activity (Keep Slack/Teams Active)",
+                                  action: #selector(AppDelegate.menuToggleSimulateActivity), target: app)
+        activityToggle.state = simulateActivity ? .on : .off
+        menu.addItem(activityToggle)
 
         menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
         menu.addItem(.separator())
@@ -95,6 +101,19 @@ extension AppDelegate {
 
     @objc func menuToggleClosedLid() {
         MenuBuilder.closedLidMode.toggle()
+        rebuildMenu()
+    }
+
+    @objc func menuToggleSimulateActivity() {
+        MenuBuilder.simulateActivity.toggle()
+        if MenuBuilder.simulateActivity {
+            activitySimulator.start()
+            Notify.send(title: "WakeGuard",
+                        body: "Activity simulation on — presence stays active (Slack/Teams).")
+        } else {
+            activitySimulator.stop()
+            Notify.send(title: "WakeGuard", body: "Activity simulation off.")
+        }
         rebuildMenu()
     }
 

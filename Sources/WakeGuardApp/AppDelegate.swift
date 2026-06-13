@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var controller = SessionController(spawner: CaffeinateSpawner(),
                                             leaseStore: LeaseStore(),
                                             limits: limits)
+    let activitySimulator = ActivitySimulator(emitter: CGActivityEmitter())
     private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: limits)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
@@ -34,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         controller.stop(reason: "App quit")
+        activitySimulator.stop()
     }
 
     // MARK: - Session actions (called from MenuBuilder)
