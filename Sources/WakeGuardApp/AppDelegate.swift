@@ -122,10 +122,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.contentTintColor = simActive ? .systemGreen : nil
     }
 
-    private func updateIcon(active: Bool) {
-        refreshStatusIcon()
-    }
-
     private func refreshCountdown() {
         guard let session = controller.activeSession else { return }
         let remaining = max(0, Int(session.endsAt.timeIntervalSinceNow))
