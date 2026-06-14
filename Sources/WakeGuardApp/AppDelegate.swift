@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        updateIcon(active: false)
+        refreshStatusIcon()
 
         controller.onSessionEnded = { [weak self] reason in
             Notify.send(title: "WakeGuard", body: "Session ended: \(reason)")
@@ -103,14 +103,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let active = controller.activeSession != nil
         NSApp.setActivationPolicy(active ? .regular : .accessory)
         if !active { NSApp.dockTile.badgeLabel = nil }
-        updateIcon(active: active)
+        refreshStatusIcon()
         rebuildMenu()
     }
 
+    /// Recomputes and applies the status item icon, reflecting both the current
+    /// keep-awake session state (fill vs outline) and the activity-simulation
+    /// state (green tint vs adaptive color).  Call this from any site that
+    /// changes either piece of state.
+    func refreshStatusIcon() {
+        let sessionActive = controller.activeSession != nil
+        let simActive = MenuBuilder.simulateActivity
+        let symbol = sessionActive ? "cup.and.saucer.fill" : "cup.and.saucer"
+        let a11y = simActive ? "WakeGuard — simulating activity" : "WakeGuard"
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: a11y)
+        image?.isTemplate = true
+        statusItem.button?.image = image
+        statusItem.button?.contentTintColor = simActive ? .systemGreen : nil
+    }
+
     private func updateIcon(active: Bool) {
-        let symbol = active ? "cup.and.saucer.fill" : "cup.and.saucer"
-        statusItem.button?.image = NSImage(systemSymbolName: symbol,
-                                           accessibilityDescription: "WakeGuard")
+        refreshStatusIcon()
     }
 
     private func refreshCountdown() {

@@ -127,6 +127,7 @@ extension AppDelegate {
             activitySimulator.stop()
             Notify.send(title: "WakeGuard", body: "Activity simulation off.")
         }
+        refreshStatusIcon()
         rebuildMenu()
     }
 
