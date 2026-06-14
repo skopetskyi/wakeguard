@@ -22,9 +22,10 @@
     <string>1.0</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
-    <!-- Menu-bar agent: no permanent Dock icon while idle. The app flips to a
-         regular Dock presence at runtime only while a keep-awake session runs. -->
-    <key>LSUIElement</key>
+    <!-- Always a regular app: the Dock icon is present whenever WakeGuard runs. -->
+    <!-- Refuse a second instance on the Finder/open launch path; the binary also
+         enforces this with an flock guard for bare-binary launches. -->
+    <key>LSMultipleInstancesProhibited</key>
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>

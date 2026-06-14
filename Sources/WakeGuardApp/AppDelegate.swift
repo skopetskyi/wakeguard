@@ -14,7 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var refreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        // Always a regular app: the Dock icon is present whenever WakeGuard runs.
+        NSApp.setActivationPolicy(.regular)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         refreshStatusIcon()
 
@@ -101,7 +102,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func sessionStateChanged() {
         let active = controller.activeSession != nil
-        NSApp.setActivationPolicy(active ? .regular : .accessory)
+        // The Dock icon is always shown; only the countdown badge is gated on a
+        // running session — clear it the moment the session ends.
         if !active { NSApp.dockTile.badgeLabel = nil }
         refreshStatusIcon()
         rebuildMenu()

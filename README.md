@@ -9,7 +9,9 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
 - Optionally keep the Mac awake **with the lid closed** ("Keep Awake When Lid Closed") —
   requires the wakeguardd daemon.
 - Keep presence tools (Slack, Teams) showing active — see below.
-- Dock icon + countdown badge appear ONLY while a session is active.
+- The Dock icon and menu-bar cup are always present while WakeGuard runs; the
+  countdown-timer badge on the Dock icon appears only during an active session.
+- Only one instance runs at a time (an `flock` guard plus `LSMultipleInstancesProhibited`).
 
 ## Keep Slack/Teams active
 
@@ -60,10 +62,10 @@ Then launch **WakeGuard** from Launchpad / Spotlight, or drag it onto the Dock t
 keep a one-click launcher there. (Omit `--install` to leave `WakeGuard.app` in the
 repo folder so you can drag it wherever you like.)
 
-WakeGuard is a menu-bar app: when you open it, the cup icon appears in the **menu
-bar**, not the Dock — that's by design (a permanent Dock icon would defeat the
-"Dock presence = a session is keeping me awake" cue). A real Dock icon + countdown
-badge appear only while a keep-awake session is running.
+WakeGuard shows a **Dock icon whenever it is running**, plus a cup in the **menu
+bar**. The countdown-timer badge on the Dock icon appears only while a keep-awake
+session is active; when idle, the Dock icon is just present. Launching WakeGuard a
+second time does nothing — only one instance can run at a time.
 
 To launch automatically at login: System Settings → General → Login Items → **+** →
 pick `WakeGuard.app`.
