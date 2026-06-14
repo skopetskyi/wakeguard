@@ -12,6 +12,8 @@
          reference `pkill WakeGuardApp` and `pgrep WakeGuardApp` still match. -->
     <key>CFBundleExecutable</key>
     <string>WakeGuardApp</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>

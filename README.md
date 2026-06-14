@@ -86,6 +86,5 @@ re-create the lease and the daemon would re-enable disablesleep.)
 - The lease directory is writable by the login user, so any process running as
   you could keep the Mac awake. Acceptable single-user trade-off; the daemon
   only reads timestamps/ints from the lease and caps grants at 60s.
-- The `WakeGuard.app` bundle uses a generic app icon and osascript notifications.
-  A custom `.icns` icon is a possible later polish (the menu-bar cup itself is the
-  real status indicator).
+- The `WakeGuard.app` bundle ships a custom heartbeat icon (`app/AppIcon.icns`,
+  regenerate with `./scripts/make-icon.sh`) and uses osascript notifications.

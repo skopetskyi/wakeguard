@@ -20,6 +20,8 @@ mkdir -p "$BUNDLE/Contents/MacOS"
 cp "$BIN_SRC" "$BUNDLE/Contents/MacOS/$EXEC_NAME"
 chmod +x "$BUNDLE/Contents/MacOS/$EXEC_NAME"
 cp app/Info.plist "$BUNDLE/Contents/Info.plist"
+mkdir -p "$BUNDLE/Contents/Resources"
+cp app/AppIcon.icns "$BUNDLE/Contents/Resources/AppIcon.icns"
 
 # Ad-hoc code signature so macOS gives the bundle a stable identity that
 # Accessibility / Input-Monitoring grants can attach to. Note: an ad-hoc
