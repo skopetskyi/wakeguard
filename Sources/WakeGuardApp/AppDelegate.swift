@@ -107,19 +107,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
-    /// Recomputes and applies the status item icon, reflecting both the current
-    /// keep-awake session state (fill vs outline) and the activity-simulation
-    /// state (green tint vs adaptive color).  Call this from any site that
-    /// changes either piece of state.
+    /// Recomputes and applies the status item, reflecting both the keep-awake
+    /// session state (cup fill vs outline) and the activity-simulation state
+    /// (a green "● Active" label beside the icon).
+    ///
+    /// A status-bar template image is drawn in the menu bar's own adaptive
+    /// colour and ignores `contentTintColor`, so the activity mode is surfaced
+    /// with a coloured title label — which renders reliably — rather than by
+    /// tinting the icon.
     func refreshStatusIcon() {
+        guard let button = statusItem.button else { return }
         let sessionActive = controller.activeSession != nil
         let simActive = MenuBuilder.simulateActivity
         let symbol = sessionActive ? "cup.and.saucer.fill" : "cup.and.saucer"
         let a11y = simActive ? "WakeGuard — simulating activity" : "WakeGuard"
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: a11y)
         image?.isTemplate = true
-        statusItem.button?.image = image
-        statusItem.button?.contentTintColor = simActive ? .systemGreen : nil
+        button.image = image
+        button.imagePosition = .imageLeading
+        if simActive {
+            button.attributedTitle = NSAttributedString(
+                string: " ● Active",
+                attributes: [
+                    .foregroundColor: NSColor.systemGreen,
+                    .font: NSFont.menuBarFont(ofSize: 0),
+                ])
+        } else {
+            button.attributedTitle = NSAttributedString(string: "")
+        }
     }
 
     private func refreshCountdown() {
