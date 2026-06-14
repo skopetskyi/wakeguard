@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>WakeGuard</string>
+    <key>CFBundleDisplayName</key>
+    <string>WakeGuard</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.skopetskyi.wakeguard</string>
+    <!-- Executable keeps the WakeGuardApp name so existing docs/scripts that
+         reference `pkill WakeGuardApp` and `pgrep WakeGuardApp` still match. -->
+    <key>CFBundleExecutable</key>
+    <string>WakeGuardApp</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <!-- Menu-bar agent: no permanent Dock icon while idle. The app flips to a
+         regular Dock presence at runtime only while a keep-awake session runs. -->
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Personal tool — no warranty.</string>
+</dict>
+</plist>

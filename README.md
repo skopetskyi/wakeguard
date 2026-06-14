@@ -48,8 +48,28 @@ all of them end with normal sleep restored within ~35 seconds, plus:
 
 ## Install
     swift build -c release
-    ./scripts/install-daemon.sh       # one-time, needs sudo
-    .build/release/WakeGuardApp &     # or add to Login Items
+    ./scripts/install-daemon.sh       # one-time, needs sudo (only for closed-lid mode)
+    .build/release/WakeGuardApp &     # quick CLI launch
+
+## Open it like a normal app (no terminal)
+Build a double-clickable `WakeGuard.app` bundle:
+
+    ./scripts/build-app.sh --install   # builds the bundle and copies it to ~/Applications
+
+Then launch **WakeGuard** from Launchpad / Spotlight, or drag it onto the Dock to
+keep a one-click launcher there. (Omit `--install` to leave `WakeGuard.app` in the
+repo folder so you can drag it wherever you like.)
+
+WakeGuard is a menu-bar app: when you open it, the cup icon appears in the **menu
+bar**, not the Dock — that's by design (a permanent Dock icon would defeat the
+"Dock presence = a session is keeping me awake" cue). A real Dock icon + countdown
+badge appear only while a keep-awake session is running.
+
+To launch automatically at login: System Settings → General → Login Items → **+** →
+pick `WakeGuard.app`.
+
+Note: the bundle is ad-hoc signed, so after a `./scripts/build-app.sh` rebuild macOS
+may ask you to re-grant Accessibility for activity simulation.
 
 ## Emergency
 If anything ever looks wrong:
@@ -66,5 +86,6 @@ re-create the lease and the daemon would re-enable disablesleep.)
 - The lease directory is writable by the login user, so any process running as
   you could keep the Mac awake. Acceptable single-user trade-off; the daemon
   only reads timestamps/ints from the lease and caps grants at 60s.
-- Unbundled binary: generic dock icon, osascript notifications. A proper .app
-  bundle with a custom icon is a possible later improvement.
+- The `WakeGuard.app` bundle uses a generic app icon and osascript notifications.
+  A custom `.icns` icon is a possible later polish (the menu-bar cup itself is the
+  real status indicator).
