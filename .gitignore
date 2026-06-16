@@ -2,3 +2,7 @@
 .swiftpm/
 .DS_Store
 WakeGuard.app/
+
+# Obsidian per-user workspace state (keep app.json, ignore volatile bits)
+docs/vault/.obsidian/workspace*.json
+docs/vault/.obsidian/cache

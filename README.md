@@ -2,6 +2,9 @@
 
 Personal macOS keep-awake tool. Menu bar app + root daemon.
 
+📖 Full behavior docs live in the Obsidian vault at [`docs/vault/`](docs/vault/Home.md)
+(open the folder as a vault in Obsidian, or read the Markdown directly).
+
 ## What it does
 - Keep the Mac awake for a chosen duration (presets or custom minutes).
 - Optionally let the display sleep while the system stays awake ("Allow Display to Sleep"),
