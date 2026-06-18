@@ -13,6 +13,10 @@ enum MenuBuilder {
     // simulation is enabled in a given launch, so it isn't a per-toggle nag.
     static var didHintActivityPermission = false
 
+    // Currently selected activity key id (loaded from / saved to UserDefaults by
+    // AppDelegate). Drives the "Activity Key" submenu checkmark.
+    static var activityKeyID = PresenceKeys.default.id
+
     static func build(for app: AppDelegate) -> NSMenu {
         let menu = NSMenu()
 
@@ -59,6 +63,8 @@ enum MenuBuilder {
         activityToggle.state = simulateActivity ? .on : .off
         menu.addItem(activityToggle)
 
+        menu.addItem(activityKeyMenuItem(for: app))
+
         menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
         menu.addItem(.separator())
         menu.addItem(item(title: "Quit WakeGuard", action: #selector(AppDelegate.menuQuit), target: app))
@@ -69,6 +75,35 @@ enum MenuBuilder {
         let menuItem = NSMenuItem(title: title, action: action, keyEquivalent: "")
         menuItem.target = target
         return menuItem
+    }
+
+    /// "Activity Key ▸" submenu — pick the key that's tapped to keep presence
+    /// active. Grouped into recommended function keys and modifier keys, with a
+    /// checkmark on the current choice. Selection is persisted by AppDelegate.
+    private static func activityKeyMenuItem(for app: AppDelegate) -> NSMenuItem {
+        let currentName = PresenceKeys.key(withID: activityKeyID)?.displayName ?? "—"
+        let parent = NSMenuItem(title: "Activity Key: \(currentName)", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+
+        func addGroup(_ header: String, _ keys: [PresenceKey]) {
+            let head = NSMenuItem(title: header, action: nil, keyEquivalent: "")
+            head.isEnabled = false
+            submenu.addItem(head)
+            for key in keys {
+                let entry = item(title: key.displayName,
+                                 action: #selector(AppDelegate.menuSelectActivityKey(_:)), target: app)
+                entry.representedObject = key.id
+                entry.state = (key.id == activityKeyID) ? .on : .off
+                submenu.addItem(entry)
+            }
+        }
+
+        addGroup("Function keys (recommended)", PresenceKeys.functionKeys)
+        submenu.addItem(.separator())
+        addGroup("Modifier keys", PresenceKeys.modifierKeys)
+
+        parent.submenu = submenu
+        return parent
     }
 }
 
@@ -129,6 +164,11 @@ extension AppDelegate {
         }
         refreshStatusIcon()
         rebuildMenu()
+    }
+
+    @objc func menuSelectActivityKey(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        selectActivityKey(id: id)
     }
 
     @objc func menuQuit() {

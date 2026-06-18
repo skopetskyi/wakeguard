@@ -18,12 +18,21 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
 
 ## Keep Slack/Teams active
 
-The **"Simulate Activity (Keep Slack/Teams Active)"** menu checkbox posts an
-invisible F15 key down+up event every 60 seconds via CoreGraphics. F15 has no
-default binding on modern Mac keyboards, so the keypress is a no-op for the
-user; it does, however, register as HID user activity, resetting the system
-idle timer that presence tools (Slack, Teams, etc.) rely on to decide when to
-show you as away.
+The **"Simulate Activity (Keep Slack/Teams Active)"** menu checkbox taps a no-op
+key every 60 seconds via CoreGraphics. The key types no character, shows no
+on-screen HUD, and doesn't move the cursor — but it still registers as HID user
+activity, resetting the system idle timer that presence tools (Slack, Teams, etc.)
+rely on to decide when to show you as away.
+
+Pick the key from the **Activity Key** submenu (choice saved across launches):
+- **Function keys (default F16):** F16, F13, F17, F18, F19 — recommended,
+  collision-free.
+- **Modifier keys:** Left/Right Control, Option, Shift, Command — handy if you
+  want to avoid the function row, but watch for clashes with your own shortcuts.
+
+F14/F15 (brightness), Caps Lock, fn/Globe, and character/media keys are excluded
+because they type or pop their own HUD. (F15 was the original default — it's the
+brightness-up key, which is why you saw the brightness HUD.)
 
 - **Off by default.** Toggle it independently of any keep-awake session — you
   can run it with or without an active WakeGuard session.
@@ -31,7 +40,7 @@ show you as away.
   away thresholds.
 
 **Trade-offs to be aware of:**
-- The F15 event resets the display idle timer, so it can wake the display. If
+- The synthetic key event resets the display idle timer, so it can wake the display. If
   you have "Allow Display to Sleep" enabled, or you've just used "Turn Display
   Off Now", the screen will briefly wake every 60 seconds. Don't combine these
   with activity simulation if you want the display to stay dark.

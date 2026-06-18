@@ -8,12 +8,27 @@ checkbox, **off by default**, and **independent of any keep-awake session**.
 
 - While on, `ActivitySimulator` fires a `Timer` **every 60 s** (and once
   immediately) on the main run loop.
-- Each tick, `ActivityEmitterCG` posts an **invisible F15 key** down+up via
-  `CGEvent` (virtual key `0x71`) to `.cghidEventTap`, using a
-  `CGEventSource(stateID: .hidSystemState)`.
-- F15 has no default binding on Mac keyboards → a no-op for you, but macOS records
-  it as **HID user activity**, resetting the system idle timer that Slack
-  (~10 min) and Teams (~5 min) read to decide when to mark you away.
+- Each tick, `ActivityEmitterCG` posts a **selectable no-op key** down+up via
+  `CGEvent` to `.cghidEventTap`, using a `CGEventSource(stateID: .hidSystemState)`.
+- The key types no character, shows no on-screen HUD, and doesn't move the cursor,
+  but macOS still records it as **HID user activity**, resetting the system idle
+  timer that Slack (~10 min) and Teams (~5 min) read to decide when to mark you away.
+
+## Choosing the key
+
+The **Activity Key** submenu lets you pick which key is tapped; the choice is saved
+across launches (UserDefaults `activityKeyID`). The list (`PresenceKeys`):
+
+- **Function keys (recommended, default F16):** F16, F13, F17, F18, F19 — virtual
+  keys with no default binding and no HUD.
+- **Modifier keys:** Left/Right Control, Left/Right Option, Left/Right Shift,
+  Left/Right Command — no character, no HUD, but may clash with a shortcut you've
+  assigned (e.g. Right Option bound to a dictation/voice feature).
+
+Excluded on purpose: **F14/F15** (brightness HUD — F15 was the original default
+and popped that HUD), **Caps Lock** and **fn/Globe** (own HUD), and any character
+or media key. Selecting a key while simulation is on restarts the emitter so it
+takes effect immediately.
 - 60 s sits comfortably under the tightest (~5 min) threshold.
 
 `ActivitySimulator.start()` is idempotent; `stop()` halts it; it's stopped on quit
@@ -35,7 +50,7 @@ the app shows a one-time hint about this.
 
 ## Trade-offs (current behavior)
 
-- The F15 event also resets the **display** idle timer, so it can **wake the
+- The synthetic key event also resets the **display** idle timer, so it can **wake the
   display**. Don't combine it with "Allow Display to Sleep" / "Turn Display Off
   Now" if you want the screen to stay dark.
 - Because it resets the system idle timer, it incidentally **keeps the Mac awake**

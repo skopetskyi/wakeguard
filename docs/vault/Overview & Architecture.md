@@ -23,7 +23,7 @@ app exit, crash, daemon restart, reboot, or low battery.
    - `MenuBuilder` — menu construction + the toggle actions.
    - `SafetyMonitor` — 15 s poll feeding `SafetyPolicy`.
    - `SystemStatus` — truth-from-system probe (assertions + `SleepDisabled`).
-   - `ActivityEmitterCG` — posts the real F15 `CGEvent`.
+   - `ActivityEmitterCG` — posts the real `CGEvent` for the selected key.
    - `Notify` — osascript notifications.
 3. **`wakeguardd`** — a tiny **root LaunchDaemon** that flips `pmset disablesleep`
    for closed-lid mode, governed entirely by the lease file.
@@ -40,7 +40,7 @@ app exit, crash, daemon restart, reboot, or low battery.
 Menu toggle ─► AppDelegate ─► SessionController ─► caffeinate (-w app pid)
                                    │
                                    └─► LeaseStore ─► lease.json ◄─ wakeguardd (root) ─► pmset disablesleep
-ActivitySimulator ─► ActivityEmitterCG ─► CGEvent F15 ─► resets HID idle timer
+ActivitySimulator ─► ActivityEmitterCG ─► CGEvent (selected key) ─► resets HID idle timer
 ```
 
 See [[Build, Install & Scripts]] to build and run it.

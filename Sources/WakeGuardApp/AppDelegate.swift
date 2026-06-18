@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import WakeGuardCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -8,14 +9,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var controller = SessionController(spawner: CaffeinateSpawner(),
                                             leaseStore: LeaseStore(),
                                             limits: limits)
-    let activitySimulator = ActivitySimulator(emitter: CGActivityEmitter())
+    // Concrete emitter is held so the "Activity Key" menu can change which key it
+    // taps at runtime; the simulator drives it on its 60 s timer.
+    let activityEmitter = CGActivityEmitter()
+    lazy var activitySimulator = ActivitySimulator(emitter: activityEmitter)
     private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: limits)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
 
+    /// UserDefaults key for the persisted activity-key choice.
+    private static let activityKeyDefaultsKey = "activityKeyID"
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Always a regular app: the Dock icon is present whenever WakeGuard runs.
         NSApp.setActivationPolicy(.regular)
+        loadActivityKey()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         refreshStatusIcon()
 
@@ -96,6 +104,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func sleepDisplayNow() {
         Shell.run("/usr/bin/pmset", ["displaysleepnow"])
+    }
+
+    // MARK: - Activity key selection
+
+    /// Restores the saved activity key (or the default) into the emitter + menu.
+    private func loadActivityKey() {
+        let savedID = UserDefaults.standard.string(forKey: Self.activityKeyDefaultsKey)
+        let key = savedID.flatMap(PresenceKeys.key(withID:)) ?? PresenceKeys.default
+        MenuBuilder.activityKeyID = key.id
+        activityEmitter.keyCode = CGKeyCode(key.keyCode)
+    }
+
+    /// Called from the "Activity Key" submenu. Persists the choice, updates the
+    /// emitter, and — if simulation is running — restarts it so the new key
+    /// takes effect immediately (start() emits at once).
+    func selectActivityKey(id: String) {
+        guard let key = PresenceKeys.key(withID: id) else { return }
+        MenuBuilder.activityKeyID = key.id
+        activityEmitter.keyCode = CGKeyCode(key.keyCode)
+        UserDefaults.standard.set(key.id, forKey: Self.activityKeyDefaultsKey)
+        if MenuBuilder.simulateActivity {
+            activitySimulator.stop()
+            activitySimulator.start()
+        }
+        rebuildMenu()
     }
 
     // MARK: - UI state

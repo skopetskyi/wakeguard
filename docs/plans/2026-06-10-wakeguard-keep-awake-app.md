@@ -1906,9 +1906,11 @@ idle timer, so presence stays green. It is **independent of keep-awake sessions*
 or without one) and **off by default** — a menu checkbox the user must explicitly enable.
 
 Design choices (personal-tool scope):
-- **Mechanism:** post an invisible **F15 key** down/up (`CGEvent`, virtual key `0x71`) to
-  `.cghidEventTap`. F15 has no default binding on Mac keyboards, so it is a no-op for the user
-  but registers as user activity for presence tools. No cursor movement, no visible side effect.
+- **Mechanism:** post an invisible no-op **key** down/up (`CGEvent`) to `.cghidEventTap`,
+  which registers as user activity for presence tools with no cursor movement or visible
+  side effect. *(Superseded during implementation: the key is now user-selectable via the
+  "Activity Key" menu — default **F16** — because the original F15 is the keyboard's
+  brightness-up key and popped the brightness HUD. See `PresenceKeys`.)*
 - **Cadence:** every 60 s — comfortably under the tightest presence-away threshold, low overhead.
 - **Testability:** core owns an `ActivityEmitter` protocol + timer-driven `ActivitySimulator`
   (idempotent `start`/`stop`, emits immediately on start). The real `CGEvent` poster lives in the
