@@ -8,6 +8,11 @@ so normal sleep is restored automatically if anything goes wrong.
 > (see [[Build, Install & Scripts]]). Without it, the app warns
 > **"NOT SAFE TO CLOSE LID"**.
 
+**Display:** closed-lid sessions always let the display sleep — a shut lid has no
+display. `CaffeinateCommand` omits `-d` whenever the lid policy is
+`stayAwakeWhenClosed`, regardless of the "Allow Display to Sleep" toggle. (The
+daemon's `disablesleep` keeps the *system* awake; it never forces the display on.)
+
 ## The lease (dead-man's switch)
 
 - The app writes a **lease file** at `/usr/local/var/wakeguard/lease.json`

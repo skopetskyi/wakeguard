@@ -10,7 +10,8 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
 - Optionally let the display sleep while the system stays awake ("Allow Display to Sleep"),
   plus a "Turn Display Off Now" action.
 - Optionally keep the Mac awake **with the lid closed** ("Keep Awake When Lid Closed") —
-  requires the wakeguardd daemon.
+  requires the wakeguardd daemon. Closed-lid mode lets the **display sleep** (a shut lid
+  has no display), regardless of the "Allow Display to Sleep" toggle.
 - Keep presence tools (Slack, Teams) showing active — see below.
 - The Dock icon and menu-bar cup are always present while WakeGuard runs; the
   countdown-timer badge on the Dock icon appears only during an active session.
@@ -18,35 +19,27 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
 
 ## Keep Slack/Teams active
 
-The **"Simulate Activity (Keep Slack/Teams Active)"** menu checkbox taps a no-op
-key every 60 seconds via CoreGraphics. The key types no character, shows no
-on-screen HUD, and doesn't move the cursor — but it still registers as HID user
-activity, resetting the system idle timer that presence tools (Slack, Teams, etc.)
-rely on to decide when to show you as away.
+The **"Simulate Activity (Keep Slack/Teams Active)"** menu checkbox does two
+independent things while it's on:
 
-Pick the key from the **Activity Key** submenu (choice saved across launches):
-- **Function keys (default F16):** F16, F13, F17, F18, F19 — recommended,
-  collision-free.
-- **Modifier keys:** Left/Right Control, Option, Shift, Command — handy if you
-  want to avoid the function row, but watch for clashes with your own shortcuts.
+1. **Keeps the Mac awake** by holding a power assertion (`caffeinate -i -w`). This
+   is guaranteed and needs **no permission** — the Mac stays awake even if the step
+   below is blocked.
+2. **Keeps presence active** with a **net-zero mouse nudge** every 60 seconds: the
+   cursor moves 1px and immediately back to the exact same spot. Mouse movement is
+   the most reliable "user is active" signal, so it resets the system idle timer
+   that Slack (~10 min) and Teams (~5 min) read. No HUD, no character, no net cursor
+   movement.
 
-F14/F15 (brightness), Caps Lock, fn/Globe, and character/media keys are excluded
-because they type or pop their own HUD. (F15 was the original default — it's the
-brightness-up key, which is why you saw the brightness HUD.)
-
-- **Off by default.** Toggle it independently of any keep-awake session — you
-  can run it with or without an active WakeGuard session.
-- **60-second cadence** — well under Teams' ~5-minute and Slack's ~10-minute
-  away thresholds.
+- **Off by default.** Toggle it independently of any keep-awake session.
 
 **Trade-offs to be aware of:**
-- The synthetic key event resets the display idle timer, so it can wake the display. If
-  you have "Allow Display to Sleep" enabled, or you've just used "Turn Display
-  Off Now", the screen will briefly wake every 60 seconds. Don't combine these
-  with activity simulation if you want the display to stay dark.
-- On first use macOS may prompt for **Accessibility** or **Input Monitoring**
-  permission so that WakeGuard can post synthetic input events. Grant it in
-  System Settings → Privacy & Security.
+- The mouse nudge resets the display idle timer too, so the display won't sleep
+  while presence is active — keeping Slack/Teams green inherently needs a real
+  input event, and that wakes the display.
+- The **presence** nudge needs **Accessibility** / **Input Monitoring** permission
+  (System Settings → Privacy & Security). If it's missing, presence won't update —
+  but **the Mac still stays awake** via the power assertion.
 
 ## Fail-safe design
 Closed-lid mode works through a dead-man's switch: the app must renew a 30-second

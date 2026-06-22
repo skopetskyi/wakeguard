@@ -24,6 +24,7 @@ for sig in [SIGTERM, SIGINT] {
     source.setEventHandler {
         delegate.controller.stop(reason: "Terminated by signal")
         delegate.activitySimulator.stop()
+        delegate.stopPresenceKeepAwake()
         exit(0)
     }
     source.resume()

@@ -1,27 +1,28 @@
 import CoreGraphics
 import WakeGuardCore
 
-/// Real emitter: taps a chosen key to reset the system idle timer without any
-/// visible effect.
+/// Real emitter: a **net-zero mouse nudge** that resets the system idle timer
+/// with no visible effect.
 ///
-/// The key is user-selectable (see `PresenceKeys` / the "Activity Key" menu).
-/// Every offered key types no character and shows no on-screen HUD, yet each is
-/// still a HID event, which resets the system idle timer that presence tools
-/// (Slack, Teams) read. The default is F16; F15 is avoided because it is the
-/// keyboard's brightness-up key and pops the brightness HUD.
-final class CGActivityEmitter: ActivityEmitter {
-    /// The key tapped on each `emit()`. Mutable so the menu can change it live.
-    var keyCode: CGKeyCode
-
-    init(keyCode: CGKeyCode = CGKeyCode(PresenceKeys.default.keyCode)) {
-        self.keyCode = keyCode
-    }
-
+/// Mouse movement is the most reliable "user is active" signal — for the system
+/// idle timer and for presence tools (Slack, Teams). We read the current cursor
+/// location, move it 1px, then move it straight back to the exact original spot,
+/// so there is no net cursor movement, no character, and no on-screen HUD.
+struct CGActivityEmitter: ActivityEmitter {
     func emit() {
         let source = CGEventSource(stateID: .hidSystemState)
-        let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
-        let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
-        down?.post(tap: .cghidEventTap)
-        up?.post(tap: .cghidEventTap)
+        // A freshly created event (nil source) reports the current cursor point.
+        let origin = CGEvent(source: nil)?.location ?? .zero
+        // Nudge left unless we're at the left edge, so the cursor stays on-screen
+        // and the return lands exactly back on `origin`.
+        let dx: CGFloat = origin.x > 1 ? -1 : 1
+        post(source, to: CGPoint(x: origin.x + dx, y: origin.y))
+        post(source, to: origin)
+    }
+
+    private func post(_ source: CGEventSource?, to point: CGPoint) {
+        CGEvent(mouseEventSource: source, mouseType: .mouseMoved,
+                mouseCursorPosition: point, mouseButton: .left)?
+            .post(tap: .cghidEventTap)
     }
 }

@@ -1908,9 +1908,10 @@ or without one) and **off by default** — a menu checkbox the user must explici
 Design choices (personal-tool scope):
 - **Mechanism:** post an invisible no-op **key** down/up (`CGEvent`) to `.cghidEventTap`,
   which registers as user activity for presence tools with no cursor movement or visible
-  side effect. *(Superseded during implementation: the key is now user-selectable via the
-  "Activity Key" menu — default **F16** — because the original F15 is the keyboard's
-  brightness-up key and popped the brightness HUD. See `PresenceKeys`.)*
+  side effect. *(Superseded: the synthetic-key approach (F15 popped the brightness HUD;
+  unmapped F16–F19 didn't keep the Mac awake) was replaced entirely — keep-awake now uses
+  a power assertion and presence uses a net-zero mouse nudge. See
+  `docs/plans/2026-06-22-presence-keepawake-redesign-design.md`.)*
 - **Cadence:** every 60 s — comfortably under the tightest presence-away threshold, low overhead.
 - **Testability:** core owns an `ActivityEmitter` protocol + timer-driven `ActivitySimulator`
   (idempotent `start`/`stop`, emits immediately on start). The real `CGEvent` poster lives in the

@@ -1,5 +1,4 @@
 import AppKit
-import CoreGraphics
 import WakeGuardCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -9,21 +8,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var controller = SessionController(spawner: CaffeinateSpawner(),
                                             leaseStore: LeaseStore(),
                                             limits: limits)
-    // Concrete emitter is held so the "Activity Key" menu can change which key it
-    // taps at runtime; the simulator drives it on its 60 s timer.
-    let activityEmitter = CGActivityEmitter()
-    lazy var activitySimulator = ActivitySimulator(emitter: activityEmitter)
+    let activitySimulator = ActivitySimulator(emitter: CGActivityEmitter())
     private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: limits)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
 
-    /// UserDefaults key for the persisted activity-key choice.
-    private static let activityKeyDefaultsKey = "activityKeyID"
+    // Presence keep-awake: while Simulate Activity is on, a `caffeinate -i -w`
+    // process holds a system-sleep assertion (needs no Accessibility permission),
+    // so the Mac stays awake even if the synthetic mouse nudge is ever filtered.
+    private let presenceSpawner = CaffeinateSpawner()
+    private var presenceKeepAwake: CaffeinateProcess?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Always a regular app: the Dock icon is present whenever WakeGuard runs.
         NSApp.setActivationPolicy(.regular)
-        loadActivityKey()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         refreshStatusIcon()
 
@@ -45,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         controller.stop(reason: "App quit")
         activitySimulator.stop()
+        stopPresenceKeepAwake()
     }
 
     // MARK: - Session actions (called from MenuBuilder)
@@ -106,29 +105,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Shell.run("/usr/bin/pmset", ["displaysleepnow"])
     }
 
-    // MARK: - Activity key selection
+    // MARK: - Presence keep-awake (power assertion)
 
-    /// Restores the saved activity key (or the default) into the emitter + menu.
-    private func loadActivityKey() {
-        let savedID = UserDefaults.standard.string(forKey: Self.activityKeyDefaultsKey)
-        let key = savedID.flatMap(PresenceKeys.key(withID:)) ?? PresenceKeys.default
-        MenuBuilder.activityKeyID = key.id
-        activityEmitter.keyCode = CGKeyCode(key.keyCode)
+    /// Spawn `caffeinate -i -w <app-pid>` to hold a system-sleep assertion while
+    /// Simulate Activity is on. `-w` ties it to this app, so it dies with us.
+    func startPresenceKeepAwake() {
+        guard presenceKeepAwake == nil else { return }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        presenceKeepAwake = try? presenceSpawner.spawnCaffeinate(arguments: ["-i", "-w", String(pid)])
     }
 
-    /// Called from the "Activity Key" submenu. Persists the choice, updates the
-    /// emitter, and — if simulation is running — restarts it so the new key
-    /// takes effect immediately (start() emits at once).
-    func selectActivityKey(id: String) {
-        guard let key = PresenceKeys.key(withID: id) else { return }
-        MenuBuilder.activityKeyID = key.id
-        activityEmitter.keyCode = CGKeyCode(key.keyCode)
-        UserDefaults.standard.set(key.id, forKey: Self.activityKeyDefaultsKey)
-        if MenuBuilder.simulateActivity {
-            activitySimulator.stop()
-            activitySimulator.start()
-        }
-        rebuildMenu()
+    func stopPresenceKeepAwake() {
+        presenceKeepAwake?.terminate()
+        presenceKeepAwake = nil
     }
 
     // MARK: - UI state
