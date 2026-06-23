@@ -23,7 +23,7 @@ app exit, crash, daemon restart, reboot, or low battery.
    - `MenuBuilder` — menu construction + the toggle actions.
    - `SafetyMonitor` — 15 s poll feeding `SafetyPolicy`.
    - `SystemStatus` — truth-from-system probe (assertions + `SleepDisabled`).
-   - `ActivityEmitterCG` — posts the real net-zero mouse-nudge `CGEvent`s.
+   - `VolumeTapActivityEmitter` — posts the real net-zero volume-key media events.
    - `Notify` — osascript notifications.
 3. **`wakeguardd`** — a tiny **root LaunchDaemon** that flips `pmset disablesleep`
    for closed-lid mode, governed entirely by the lease file.

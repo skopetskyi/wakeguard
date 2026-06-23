@@ -1,8 +1,8 @@
 import Foundation
 
 /// Seam for injecting a synthetic user-activity event.
-/// The production implementation nudges the mouse a net-zero amount (see the
-/// app's CGActivityEmitter) via CoreGraphics; tests supply a counting fake.
+/// The production implementation taps the volume keys net-zero (see the app's
+/// VolumeTapActivityEmitter); tests supply a counting fake.
 /// Each `emit()` call resets the system HID idle timer, keeping presence tools
 /// (Slack, Teams, etc.) from marking the user as away.
 public protocol ActivityEmitter {

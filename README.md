@@ -19,25 +19,28 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
 
 ## Keep Slack/Teams active
 
-The **"Simulate Activity (Keep Slack/Teams Active)"** menu checkbox does two
-independent things while it's on:
+The **"Simulate Activity (Keep Slack/Teams Active)"** menu does two independent
+things while it's on:
 
 1. **Keeps the Mac awake** by holding a power assertion (`caffeinate -i -w`). This
-   is guaranteed and needs **no permission** — the Mac stays awake even if the step
-   below is blocked.
-2. **Keeps presence active** with a **net-zero mouse nudge** every 60 seconds: the
-   cursor moves 1px and immediately back to the exact same spot. Mouse movement is
-   the most reliable "user is active" signal, so it resets the system idle timer
-   that Slack (~10 min) and Teams (~5 min) read. No HUD, no character, no net cursor
-   movement.
+   is guaranteed and needs **no permission** — the Mac stays awake even if step 2 is
+   blocked.
+2. **Keeps presence active** with a **net-zero volume tap** every 60 seconds:
+   volume-down then volume-up, so the level is unchanged but the **volume HUD blips**.
+   A media-key press is a real, fully-processed input event, so Slack/Teams reliably
+   count it as activity (after a mouse nudge proved too subtle to register).
 
-- **Off by default.** Toggle it independently of any keep-awake session.
+**Duration + countdown.** Pick how long to stay active from the submenu — presets
+(15 min … 8 h), **Custom…**, or **Until I turn it off**. A timed run **auto-stops**
+at the deadline (the "sleep timer") so the Mac can sleep. While active, the menu bar
+shows a live green countdown **`● H:MM:SS`** so it's obvious it's running.
+
+- **Off by default.** Run it independently of any keep-awake session.
 
 **Trade-offs to be aware of:**
-- The mouse nudge resets the display idle timer too, so the display won't sleep
-  while presence is active — keeping Slack/Teams green inherently needs a real
-  input event, and that wakes the display.
-- The **presence** nudge needs **Accessibility** / **Input Monitoring** permission
+- The volume tap flashes the volume HUD each minute (intended) and resets the
+  display idle timer, so the display stays on while active.
+- The **presence** tap needs **Accessibility** / **Input Monitoring** permission
   (System Settings → Privacy & Security). If it's missing, presence won't update —
   but **the Mac still stays awake** via the power assertion.
 
