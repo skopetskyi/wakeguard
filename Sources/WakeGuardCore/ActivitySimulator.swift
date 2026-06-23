@@ -58,4 +58,10 @@ public final class ActivitySimulator {
         timer = nil
         isRunning = false
     }
+
+    /// Emit a single event immediately, independent of the running state.
+    /// Used by the menu "Test" action to verify the event reaches the system.
+    public func emitOnce() {
+        emitter.emit()
+    }
 }

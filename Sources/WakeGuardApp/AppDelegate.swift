@@ -131,16 +131,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBuilder.simulateActivity = true
         startPresenceKeepAwake()
         activitySimulator.start()
-        if MenuBuilder.didHintActivityPermission {
+        if AccessibilityPermission.isTrusted {
             Notify.send(title: "WakeGuard",
-                        body: "Activity simulation on — presence stays active (Slack/Teams).")
+                        body: "Activity simulation on — the volume HUD will blip each minute (presence stays active).")
         } else {
-            MenuBuilder.didHintActivityPermission = true
-            Notify.send(title: "WakeGuard",
-                        body: "Activity simulation on. The volume HUD blips each minute. If Slack/Teams still go idle, grant WakeGuard Accessibility access in System Settings → Privacy & Security.")
+            // Without Accessibility, macOS silently drops the volume blip, so
+            // presence won't hold. Surface it and pop the grant dialog. (The Mac
+            // still stays awake via the assertion.)
+            AccessibilityPermission.promptIfNeeded()
+            Notify.send(title: "WakeGuard needs Accessibility",
+                        body: "Grant WakeGuard in System Settings → Privacy & Security → Accessibility, then the volume blip works. After any rebuild you must re-grant it.")
         }
         refreshStatusIcon()
         rebuildMenu()
+    }
+
+    /// "Test (blip now)" — fire one event and report whether it can reach the
+    /// system, so a missing permission is obvious instead of a silent no-op.
+    func testActivityBlip() {
+        activitySimulator.emitOnce()
+        if AccessibilityPermission.isTrusted {
+            Notify.send(title: "WakeGuard test",
+                        body: "Sent a volume blip — you should have just seen the volume HUD flash.")
+        } else {
+            AccessibilityPermission.promptIfNeeded()
+            Notify.send(title: "WakeGuard test — blocked",
+                        body: "No Accessibility permission, so the blip is filtered. Grant WakeGuard in System Settings → Privacy & Security → Accessibility, then test again.")
+        }
     }
 
     /// Stop the presence loop + keep-awake assertion. Silent (callers notify).

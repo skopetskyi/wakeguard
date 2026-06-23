@@ -39,7 +39,12 @@ use the separate **Sleep Timer** below.
   display idle timer, so the display stays on while active.
 - The **presence** tap needs **Accessibility** / **Input Monitoring** permission
   (System Settings → Privacy & Security). If it's missing, presence won't update —
-  but **the Mac still stays awake** via the power assertion.
+  but **the Mac still stays awake** via the power assertion. Use **Test Activity
+  (blip now)** in the menu to check: you should see the volume HUD flash; if not,
+  the app tells you the permission is missing and pops the grant dialog.
+- **Re-grant after every rebuild.** The ad-hoc signature changes each
+  `build-app.sh`, which invalidates the Accessibility grant — so remove the old
+  WakeGuard entry in Settings and re-add the freshly built app, then enable it.
 
 ## Sleep Timer
 A separate countdown that **puts the Mac to sleep** when it reaches zero. From the

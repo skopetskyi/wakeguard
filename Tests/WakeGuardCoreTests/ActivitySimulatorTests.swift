@@ -83,4 +83,12 @@ final class ActivitySimulatorTests: XCTestCase {
         simulator.start()
         XCTAssertTrue(simulator.isRunning)
     }
+
+    // MARK: - emitOnce
+
+    func testEmitOnceEmitsWithoutRunning() {
+        simulator.emitOnce()
+        XCTAssertEqual(emitter.emitCount, 1)
+        XCTAssertFalse(simulator.isRunning, "emitOnce must not start the loop")
+    }
 }

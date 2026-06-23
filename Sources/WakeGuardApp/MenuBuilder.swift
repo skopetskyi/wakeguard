@@ -9,10 +9,6 @@ enum MenuBuilder {
     static var closedLidMode = false
     static var simulateActivity = false
 
-    // Show the Accessibility-permission hint only the first time activity
-    // simulation is enabled in a given launch, so it isn't a per-toggle nag.
-    static var didHintActivityPermission = false
-
     static func build(for app: AppDelegate) -> NSMenu {
         let menu = NSMenu()
 
@@ -58,6 +54,8 @@ enum MenuBuilder {
                                   action: #selector(AppDelegate.menuToggleSimulateActivity), target: app)
         activityToggle.state = simulateActivity ? .on : .off
         menu.addItem(activityToggle)
+        menu.addItem(item(title: "Test Activity (blip now)",
+                          action: #selector(AppDelegate.menuTestActivity), target: app))
 
         menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
 
@@ -135,6 +133,8 @@ extension AppDelegate {
             startActivitySimulation()
         }
     }
+
+    @objc func menuTestActivity() { testActivityBlip() }
 
     @objc func menuStartSleepPreset(_ sender: NSMenuItem) {
         startSleepTimer(duration: TimeInterval(sender.tag * 60))
