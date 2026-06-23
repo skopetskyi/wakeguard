@@ -8,10 +8,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var controller = SessionController(spawner: CaffeinateSpawner(),
                                             leaseStore: LeaseStore(),
                                             limits: limits)
-    let activitySimulator = ActivitySimulator(emitter: VolumeTapActivityEmitter())
+    // Concrete emitter is held so the "Activity Method" menu can switch the
+    // mechanism (volume / mouse / F-key) live; the simulator drives it.
+    let activityEmitter = ConfigurableActivityEmitter()
+    lazy var activitySimulator = ActivitySimulator(emitter: activityEmitter)
     private lazy var safetyMonitor = SafetyMonitor(controller: controller, limits: limits)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
+    private static let activityMethodDefaultsKey = "activityMethodID"
 
     // Presence keep-awake: while Simulate Activity is on, a `caffeinate -i -w`
     // process holds a system-sleep assertion (needs no Accessibility permission),
@@ -27,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Always a regular app: the Dock icon is present whenever WakeGuard runs.
         NSApp.setActivationPolicy(.regular)
+        loadActivityMethod()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         refreshStatusIcon()
 
@@ -143,6 +148,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         body: "Grant WakeGuard in System Settings → Privacy & Security → Accessibility, then the volume blip works. After any rebuild you must re-grant it.")
         }
         refreshStatusIcon()
+        rebuildMenu()
+    }
+
+    /// Restore the saved activity method (or the default) into emitter + menu.
+    private func loadActivityMethod() {
+        let savedID = UserDefaults.standard.string(forKey: Self.activityMethodDefaultsKey)
+        let method = savedID.flatMap(PresenceMethods.method(withID:)) ?? PresenceMethods.default
+        MenuBuilder.activityMethodID = method.id
+        activityEmitter.method = method
+    }
+
+    /// Called from the "Activity Method" submenu. Persists the choice; if
+    /// simulation is running, restarts it so the new method applies immediately.
+    func selectActivityMethod(id: String) {
+        guard let method = PresenceMethods.method(withID: id) else { return }
+        MenuBuilder.activityMethodID = method.id
+        activityEmitter.method = method
+        UserDefaults.standard.set(method.id, forKey: Self.activityMethodDefaultsKey)
+        if MenuBuilder.simulateActivity {
+            activitySimulator.stop()
+            activitySimulator.start()
+        }
         rebuildMenu()
     }
 

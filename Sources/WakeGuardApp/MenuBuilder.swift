@@ -9,9 +9,15 @@ enum MenuBuilder {
     static var closedLidMode = false
     static var simulateActivity = false
 
+    // Currently selected presence method id (loaded from / saved to UserDefaults
+    // by AppDelegate). Drives the "Activity Method" submenu checkmark.
+    static var activityMethodID = PresenceMethods.default.id
+
     static func build(for app: AppDelegate) -> NSMenu {
         let menu = NSMenu()
 
+        // ── Keep Awake ──────────────────────────────────────────────────
+        menu.addItem(sectionHeader("Keep Awake"))
         if let session = app.controller.activeSession {
             let formatter = DateFormatter()
             formatter.timeStyle = .short
@@ -38,33 +44,35 @@ enum MenuBuilder {
             start.submenu = submenu
             menu.addItem(start)
         }
-
-        menu.addItem(.separator())
         let displayToggle = item(title: "Allow Display to Sleep",
                                  action: #selector(AppDelegate.menuToggleDisplayOff), target: app)
         displayToggle.state = allowDisplayOff ? .on : .off
         menu.addItem(displayToggle)
-
         let lidToggle = item(title: "Keep Awake When Lid Closed",
                              action: #selector(AppDelegate.menuToggleClosedLid), target: app)
         lidToggle.state = closedLidMode ? .on : .off
         menu.addItem(lidToggle)
+        menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
 
-        let activityToggle = item(title: "Simulate Activity (Keep Slack/Teams Active)",
+        // ── Slack / Teams Activity ──────────────────────────────────────
+        menu.addItem(.separator())
+        menu.addItem(sectionHeader("Slack / Teams Activity"))
+        let activityToggle = item(title: "Simulate Activity (Keep Active)",
                                   action: #selector(AppDelegate.menuToggleSimulateActivity), target: app)
         activityToggle.state = simulateActivity ? .on : .off
         menu.addItem(activityToggle)
+        menu.addItem(activityMethodMenuItem(for: app))
         menu.addItem(item(title: "Test Activity (blip now)",
                           action: #selector(AppDelegate.menuTestActivity), target: app))
 
-        menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
-
-        // Sleep Timer — independent of everything above: sleep the Mac after N.
+        // ── Sleep Timer ─────────────────────────────────────────────────
+        menu.addItem(.separator())
+        menu.addItem(sectionHeader("Sleep Timer"))
         if app.sleepTimerEndsAt != nil {
             menu.addItem(item(title: "Cancel Sleep Timer",
                               action: #selector(AppDelegate.menuCancelSleepTimer), target: app))
         } else {
-            let sleepItem = NSMenuItem(title: "Sleep Timer", action: nil, keyEquivalent: "")
+            let sleepItem = NSMenuItem(title: "Sleep the Mac after…", action: nil, keyEquivalent: "")
             let sub = NSMenu()
             for minutes in durationsMinutes {
                 let label = minutes < 60 ? "\(minutes) minutes" : "\(minutes / 60) hour\(minutes > 60 ? "s" : "")"
@@ -86,6 +94,34 @@ enum MenuBuilder {
         let menuItem = NSMenuItem(title: title, action: action, keyEquivalent: "")
         menuItem.target = target
         return menuItem
+    }
+
+    /// A non-clickable section header — native on macOS 14+, disabled label on 13.
+    private static func sectionHeader(_ title: String) -> NSMenuItem {
+        if #available(macOS 14.0, *) {
+            return NSMenuItem.sectionHeader(title: title)
+        }
+        let header = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        return header
+    }
+
+    /// "Activity Method ▸" submenu — choose how presence is kept active
+    /// (volume / mouse / F16–F19), with a checkmark on the current choice.
+    private static func activityMethodMenuItem(for app: AppDelegate) -> NSMenuItem {
+        let current = PresenceMethods.method(withID: activityMethodID) ?? PresenceMethods.default
+        let parent = NSMenuItem(title: "Activity Method: \(current.displayName)",
+                                action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        for method in PresenceMethods.all {
+            let entry = item(title: method.displayName,
+                             action: #selector(AppDelegate.menuSelectActivityMethod(_:)), target: app)
+            entry.representedObject = method.id
+            entry.state = (method.id == activityMethodID) ? .on : .off
+            submenu.addItem(entry)
+        }
+        parent.submenu = submenu
+        return parent
     }
 }
 
@@ -135,6 +171,11 @@ extension AppDelegate {
     }
 
     @objc func menuTestActivity() { testActivityBlip() }
+
+    @objc func menuSelectActivityMethod(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        selectActivityMethod(id: id)
+    }
 
     @objc func menuStartSleepPreset(_ sender: NSMenuItem) {
         startSleepTimer(duration: TimeInterval(sender.tag * 60))

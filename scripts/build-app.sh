@@ -23,12 +23,22 @@ cp app/Info.plist "$BUNDLE/Contents/Info.plist"
 mkdir -p "$BUNDLE/Contents/Resources"
 cp app/AppIcon.icns "$BUNDLE/Contents/Resources/AppIcon.icns"
 
-# Ad-hoc code signature so macOS gives the bundle a stable identity that
-# Accessibility / Input-Monitoring grants can attach to. Note: an ad-hoc
-# signature changes whenever the binary changes, so after rebuilding you may
-# have to re-grant Accessibility for the activity-simulation feature.
-codesign --force --sign - "$BUNDLE" >/dev/null 2>&1 || \
-    echo "warning: codesign unavailable — bundle is unsigned (still runnable locally)"
+# Sign with the stable self-signed identity if it exists (run
+# scripts/make-signing-cert.sh once to create it), so the Accessibility grant
+# PERSISTS across rebuilds. Otherwise fall back to ad-hoc — which changes every
+# build, so you must re-grant Accessibility after each rebuild.
+IDENTITY="WakeGuard Self-Signed"
+if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+    codesign --force --sign "$IDENTITY" "$BUNDLE" >/dev/null 2>&1 \
+        && echo "Signed with stable identity \"$IDENTITY\" (grant persists across rebuilds)." \
+        || echo "warning: signing with \"$IDENTITY\" failed — falling back to ad-hoc" \
+           && codesign --force --sign - "$BUNDLE" >/dev/null 2>&1 || true
+else
+    codesign --force --sign - "$BUNDLE" >/dev/null 2>&1 || \
+        echo "warning: codesign unavailable — bundle is unsigned (still runnable locally)"
+    echo "Note: ad-hoc signed — re-grant Accessibility after this rebuild, or run"
+    echo "      ./scripts/make-signing-cert.sh once so the grant persists."
+fi
 
 if [[ "${1:-}" == "--install" ]]; then
     DEST="$HOME/Applications"

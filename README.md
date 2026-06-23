@@ -42,9 +42,14 @@ use the separate **Sleep Timer** below.
   but **the Mac still stays awake** via the power assertion. Use **Test Activity
   (blip now)** in the menu to check: you should see the volume HUD flash; if not,
   the app tells you the permission is missing and pops the grant dialog.
-- **Re-grant after every rebuild.** The ad-hoc signature changes each
-  `build-app.sh`, which invalidates the Accessibility grant — so remove the old
-  WakeGuard entry in Settings and re-add the freshly built app, then enable it.
+- **Pick the method** from **Activity Method ▸**: Volume tap (default, shows the
+  HUD), Mouse nudge (silent), or F16/F17/F18/F19 (silent). All need Accessibility.
+- **Grant keeps resetting on rebuild?** The ad-hoc signature changes each
+  `build-app.sh`, which invalidates the Accessibility grant — the toggle can even
+  look "on" while the new binary no longer matches. Permanent fix: run
+  **`./scripts/make-signing-cert.sh`** once (creates a stable self-signed identity
+  the build signs with), then `tccutil reset Accessibility com.skopetskyi.wakeguard`
+  and grant once — it now persists across rebuilds.
 
 ## Sleep Timer
 A separate countdown that **puts the Mac to sleep** when it reaches zero. From the

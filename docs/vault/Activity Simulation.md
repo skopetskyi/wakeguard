@@ -15,18 +15,19 @@ the app so it dies with us (crash-safe). This needs **no Accessibility permissio
 ## 2. Keep presence — net-zero volume tap
 
 - While on, `ActivitySimulator` fires a `Timer` **every 60 s** (and once
-  immediately) on the main run loop.
-- Each tick, `VolumeTapActivityEmitter` taps **volume-down then volume-up**
-  (net-zero volume) via the system media-key path (NSEvent → CGEvent →
-  `.cghidEventTap`).
-- A media-key press is a real, fully-processed input event — it resets the system
-  idle timer and Slack/Teams reliably count it as activity. It deliberately flashes
-  the **volume HUD** (the visible cue that it fired). Net-zero in the normal range;
-  at the extremes the volume may drift one step.
+  immediately); each tick calls `ConfigurableActivityEmitter`, which posts to
+  `.cghidEventTap` using the selected **Activity Method** (`PresenceMethods`):
+  - **Volume tap** (default) — net-zero volume-down/up via the media-key path;
+    flashes the **volume HUD**, the visible cue that it fired.
+  - **Mouse nudge** — net-zero 1px move; silent, no HUD.
+  - **F16 / F17 / F18 / F19** — an unmapped function-key tap; silent, no HUD.
+- Pick the method from **Activity Method ▸** (saved across launches in UserDefaults
+  `activityMethodID`). Switching while running restarts the loop so it applies at
+  once. Modifier keys (⌘/⇧/⌃/fn) and F14/F15 are excluded — they clash with
+  shortcuts or pop the brightness HUD.
 
-> Earlier mechanisms failed: F15 popped the brightness HUD; unmapped F16–F19 and a
-> net-zero **mouse nudge** weren't counted as activity and let the Mac/presence go
-> idle. The volume tap (which we confirmed Slack/Teams honour) replaced them.
+> All methods need Accessibility permission; the volume HUD is the easiest way to
+> *see* whether events are getting through. Use **Test Activity (blip now)**.
 
 ## On/off + indicator
 
