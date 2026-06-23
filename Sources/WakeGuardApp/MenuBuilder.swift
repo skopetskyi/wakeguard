@@ -54,28 +54,31 @@ enum MenuBuilder {
         lidToggle.state = closedLidMode ? .on : .off
         menu.addItem(lidToggle)
 
-        if simulateActivity {
-            menu.addItem(item(title: "Stop Simulating Activity",
-                              action: #selector(AppDelegate.menuStopSimulateActivity), target: app))
+        let activityToggle = item(title: "Simulate Activity (Keep Slack/Teams Active)",
+                                  action: #selector(AppDelegate.menuToggleSimulateActivity), target: app)
+        activityToggle.state = simulateActivity ? .on : .off
+        menu.addItem(activityToggle)
+
+        menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
+
+        // Sleep Timer — independent of everything above: sleep the Mac after N.
+        if app.sleepTimerEndsAt != nil {
+            menu.addItem(item(title: "Cancel Sleep Timer",
+                              action: #selector(AppDelegate.menuCancelSleepTimer), target: app))
         } else {
-            let activity = NSMenuItem(title: "Simulate Activity (Keep Slack/Teams Active)",
-                                      action: nil, keyEquivalent: "")
+            let sleepItem = NSMenuItem(title: "Sleep Timer", action: nil, keyEquivalent: "")
             let sub = NSMenu()
             for minutes in durationsMinutes {
                 let label = minutes < 60 ? "\(minutes) minutes" : "\(minutes / 60) hour\(minutes > 60 ? "s" : "")"
-                let entry = item(title: label, action: #selector(AppDelegate.menuStartSimulatePreset(_:)), target: app)
+                let entry = item(title: label, action: #selector(AppDelegate.menuStartSleepPreset(_:)), target: app)
                 entry.tag = minutes
                 sub.addItem(entry)
             }
-            sub.addItem(item(title: "Custom…", action: #selector(AppDelegate.menuStartSimulateCustom), target: app))
-            sub.addItem(.separator())
-            sub.addItem(item(title: "Until I turn it off",
-                             action: #selector(AppDelegate.menuStartSimulateIndefinite), target: app))
-            activity.submenu = sub
-            menu.addItem(activity)
+            sub.addItem(item(title: "Custom…", action: #selector(AppDelegate.menuStartSleepCustom), target: app))
+            sleepItem.submenu = sub
+            menu.addItem(sleepItem)
         }
 
-        menu.addItem(item(title: "Turn Display Off Now", action: #selector(AppDelegate.menuDisplayOff), target: app))
         menu.addItem(.separator())
         menu.addItem(item(title: "Quit WakeGuard", action: #selector(AppDelegate.menuQuit), target: app))
         return menu
@@ -124,31 +127,34 @@ extension AppDelegate {
         rebuildMenu()
     }
 
-    @objc func menuStartSimulatePreset(_ sender: NSMenuItem) {
-        startActivitySimulation(duration: TimeInterval(sender.tag * 60))
+    @objc func menuToggleSimulateActivity() {
+        if MenuBuilder.simulateActivity {
+            stopActivitySimulation()
+            Notify.send(title: "WakeGuard", body: "Activity simulation off.")
+        } else {
+            startActivitySimulation()
+        }
     }
 
-    @objc func menuStartSimulateIndefinite() {
-        startActivitySimulation(duration: nil)
+    @objc func menuStartSleepPreset(_ sender: NSMenuItem) {
+        startSleepTimer(duration: TimeInterval(sender.tag * 60))
     }
 
-    @objc func menuStartSimulateCustom() {
+    @objc func menuStartSleepCustom() {
         let alert = NSAlert()
-        alert.messageText = "Keep Slack/Teams active for how many minutes?"
+        alert.messageText = "Sleep the Mac after how many minutes?"
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        field.placeholderString = "e.g. 90"
+        field.placeholderString = "e.g. 45"
         alert.accessoryView = field
         alert.addButton(withTitle: "Start")
         alert.addButton(withTitle: "Cancel")
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn,
               let minutes = Int(field.stringValue), minutes > 0 else { return }
-        startActivitySimulation(duration: TimeInterval(minutes * 60))
+        startSleepTimer(duration: TimeInterval(minutes * 60))
     }
 
-    @objc func menuStopSimulateActivity() {
-        stopActivitySimulation(reason: "Activity simulation off.")
-    }
+    @objc func menuCancelSleepTimer() { cancelSleepTimer() }
 
     @objc func menuQuit() {
         NSApp.terminate(nil)   // triggers applicationWillTerminate -> controller.stop

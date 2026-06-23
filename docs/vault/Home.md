@@ -13,6 +13,7 @@ showing you as active.
 - [[Keep-Awake Sessions]] — durations, display policy, how `caffeinate` is used.
 - [[Closed-Lid Mode]] — the dead-man's-switch lease + root daemon.
 - [[Activity Simulation]] — keep Slack/Teams green with synthetic activity.
+- [[Sleep Timer]] — count down, then put the Mac to sleep.
 - [[Safety Policies]] — battery, thermal, and duration guards.
 - [[UI & Dock Behavior]] — menu bar, Dock icon, badge, single instance.
 - [[Build, Install & Scripts]] — building the `.app`, the daemon, permissions.

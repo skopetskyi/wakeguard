@@ -30,12 +30,9 @@ things while it's on:
    A media-key press is a real, fully-processed input event, so Slack/Teams reliably
    count it as activity (after a mouse nudge proved too subtle to register).
 
-**Duration + countdown.** Pick how long to stay active from the submenu — presets
-(15 min … 8 h), **Custom…**, or **Until I turn it off**. A timed run **auto-stops**
-at the deadline (the "sleep timer") so the Mac can sleep. While active, the menu bar
-shows a live green countdown **`● H:MM:SS`** so it's obvious it's running.
-
-- **Off by default.** Run it independently of any keep-awake session.
+It's a plain **on/off** toggle (off by default) — runs until you turn it off, with a
+green **`● Active`** label in the menu bar while on. To sleep the Mac after a while,
+use the separate **Sleep Timer** below.
 
 **Trade-offs to be aware of:**
 - The volume tap flashes the volume HUD each minute (intended) and resets the
@@ -43,6 +40,13 @@ shows a live green countdown **`● H:MM:SS`** so it's obvious it's running.
 - The **presence** tap needs **Accessibility** / **Input Monitoring** permission
   (System Settings → Privacy & Security). If it's missing, presence won't update —
   but **the Mac still stays awake** via the power assertion.
+
+## Sleep Timer
+A separate countdown that **puts the Mac to sleep** when it reaches zero. From the
+menu, **Sleep Timer ▸** → pick a duration (or Custom). The menu bar shows an orange
+**`💤 H:MM:SS`** countdown; when it elapses, WakeGuard stops activity simulation,
+ends any keep-awake session, and runs `pmset sleepnow`. **Cancel Sleep Timer** stops
+it early. (No sudo or daemon needed — it's a user-initiated sleep.)
 
 ## Fail-safe design
 Closed-lid mode works through a dead-man's switch: the app must renew a 30-second

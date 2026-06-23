@@ -13,11 +13,14 @@ Clicking it opens the menu:
 - **Turn Display Off Now**.
 - **Quit WakeGuard**.
 
-Icon states (via `refreshStatusIcon()`):
+Icon states (via `refreshStatusIcon()` / `applyStatusTitle()`):
 - **Idle** → outline cup. **Active session** → filled cup.
 - **Activity simulation on** → a green **"● Active"** label beside the cup
   (an `attributedTitle`; the green is reliable, unlike `contentTintColor` on a
   template image, which macOS ignores). See [[Activity Simulation]].
+- **Sleep timer running** → an orange **"💤 H:MM:SS"** countdown in the label,
+  updated every second (shown together with `● Active` if both are on). See
+  [[Sleep Timer]].
 
 ## Dock (icon always, badge only when active)
 

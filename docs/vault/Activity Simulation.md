@@ -28,16 +28,11 @@ the app so it dies with us (crash-safe). This needs **no Accessibility permissio
 > net-zero **mouse nudge** weren't counted as activity and let the Mac/presence go
 > idle. The volume tap (which we confirmed Slack/Teams honour) replaced them.
 
-## Duration ("sleep timer") + on-screen countdown
+## On/off + indicator
 
-Pick how long to stay active from the **Simulate Activity** submenu: presets
-(15 min … 8 h), **Custom…**, or **Until I turn it off**. A timed run **auto-stops**
-at the deadline — stopping the volume tap and releasing the assertion so the Mac can
-sleep normally.
-
-While active, the menu bar shows a green countdown **`● H:MM:SS`** (or **`● Active`**
-when indefinite), updated every second, so the active state is obvious at a glance.
-See [[UI & Dock Behavior]].
+Simulate Activity is a plain **on/off** menu toggle — it runs until you turn it off.
+While on, the menu bar shows a green **`● Active`** label. (If you want the Mac to
+sleep after a while, that's the separate [[Sleep Timer]] feature.)
 
 `ActivitySimulator.start()` is idempotent; `stop()` halts it. The core uses an
 injected `ActivityEmitter` protocol so it is unit-tested with a fake (the real

@@ -19,11 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let presenceSpawner = CaffeinateSpawner()
     private var presenceKeepAwake: CaffeinateProcess?
 
-    // Simulate-Activity duration ("sleep timer"). `activityEndsAt` is nil when off
-    // or running indefinitely; the timer auto-stops at the deadline so the Mac can
-    // sleep afterwards.
-    private(set) var activityEndsAt: Date?
-    private var activityEndTimer: Timer?
+    // System sleep timer (independent of Simulate Activity): when set, the Mac is
+    // put to sleep at the deadline. `sleepTimerEndsAt` is nil when no timer runs.
+    private(set) var sleepTimerEndsAt: Date?
+    private var sleepTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Always a regular app: the Dock icon is present whenever WakeGuard runs.
@@ -126,30 +125,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         presenceKeepAwake = nil
     }
 
-    // MARK: - Activity simulation (presence + sleep timer)
+    // MARK: - Activity simulation (presence, on/off)
 
-    /// Start Simulate Activity for `duration` seconds (nil = until turned off).
-    /// Holds the keep-awake assertion, starts the volume-tap presence loop, and
-    /// schedules an auto-stop at the deadline so the Mac can sleep afterwards.
-    func startActivitySimulation(duration: TimeInterval?) {
+    func startActivitySimulation() {
         MenuBuilder.simulateActivity = true
         startPresenceKeepAwake()
         activitySimulator.start()
-
-        activityEndTimer?.invalidate()
-        if let duration {
-            activityEndsAt = Date().addingTimeInterval(duration)
-            let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
-                self?.stopActivitySimulation(reason: "Activity timer elapsed — the Mac can sleep now.")
-            }
-            RunLoop.main.add(timer, forMode: .common)
-            activityEndTimer = timer
-        } else {
-            activityEndsAt = nil
-        }
-
         if MenuBuilder.didHintActivityPermission {
-            Notify.send(title: "WakeGuard", body: activityOnMessage(duration: duration))
+            Notify.send(title: "WakeGuard",
+                        body: "Activity simulation on — presence stays active (Slack/Teams).")
         } else {
             MenuBuilder.didHintActivityPermission = true
             Notify.send(title: "WakeGuard",
@@ -159,25 +143,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
-    func stopActivitySimulation(reason: String) {
+    /// Stop the presence loop + keep-awake assertion. Silent (callers notify).
+    func stopActivitySimulation() {
         guard MenuBuilder.simulateActivity else { return }
         MenuBuilder.simulateActivity = false
         activitySimulator.stop()
         stopPresenceKeepAwake()
-        activityEndTimer?.invalidate(); activityEndTimer = nil
-        activityEndsAt = nil
-        Notify.send(title: "WakeGuard", body: reason)
         refreshStatusIcon()
         rebuildMenu()
     }
 
-    private func activityOnMessage(duration: TimeInterval?) -> String {
-        guard let duration else {
-            return "Activity simulation on until you turn it off — presence stays active (Slack/Teams)."
+    // MARK: - System sleep timer (independent feature)
+
+    /// Schedule the Mac to sleep after `duration` seconds, with a visible
+    /// countdown. Replaces any existing timer.
+    func startSleepTimer(duration: TimeInterval) {
+        sleepTimer?.invalidate()
+        sleepTimerEndsAt = Date().addingTimeInterval(duration)
+        let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
+            self?.fireSleepTimer()
         }
+        RunLoop.main.add(timer, forMode: .common)
+        sleepTimer = timer
         let mins = Int(duration / 60)
         let label = mins < 60 ? "\(mins) min" : "\(mins / 60)h\(mins % 60 == 0 ? "" : " \(mins % 60)m")"
-        return "Activity simulation on for \(label) — presence stays active (Slack/Teams)."
+        Notify.send(title: "WakeGuard", body: "Sleep timer set — the Mac will sleep in \(label).")
+        refreshStatusIcon()
+        rebuildMenu()
+    }
+
+    func cancelSleepTimer() {
+        sleepTimer?.invalidate(); sleepTimer = nil
+        sleepTimerEndsAt = nil
+        Notify.send(title: "WakeGuard", body: "Sleep timer cancelled.")
+        refreshStatusIcon()
+        rebuildMenu()
+    }
+
+    private func fireSleepTimer() {
+        sleepTimer?.invalidate(); sleepTimer = nil
+        sleepTimerEndsAt = nil
+        // Wind down keep-awake intent so nothing fights the sleep or re-wakes it.
+        stopActivitySimulation()
+        controller.stop(reason: "Sleep timer")
+        Notify.send(title: "WakeGuard", body: "Sleep timer elapsed — sleeping now.")
+        Shell.run("/usr/bin/pmset", ["sleepnow"])
     }
 
     // MARK: - UI state
@@ -209,29 +219,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         image?.isTemplate = true
         button.image = image
         button.imagePosition = .imageLeading
-        applyActivityTitle()
+        applyStatusTitle()
     }
 
-    /// The green menu-bar label: a live countdown while a timed activity
-    /// simulation runs, "● Active" when indefinite, empty when off. Updated every
-    /// second by `refreshCountdown` so the active state is obvious at a glance.
-    private func applyActivityTitle() {
+    /// The menu-bar label: green **"● Active"** while simulating activity, plus an
+    /// orange **"💤 H:MM:SS"** countdown while a sleep timer runs. Both render
+    /// together and update every second so each state is obvious at a glance.
+    private func applyStatusTitle() {
         guard let button = statusItem.button else { return }
-        guard MenuBuilder.simulateActivity else {
-            button.attributedTitle = NSAttributedString(string: "")
-            return
+        let font = NSFont.menuBarFont(ofSize: 0)
+        let title = NSMutableAttributedString()
+        if MenuBuilder.simulateActivity {
+            title.append(NSAttributedString(string: " ● Active",
+                attributes: [.foregroundColor: NSColor.systemGreen, .font: font]))
         }
-        let text: String
-        if let endsAt = activityEndsAt {
+        if let endsAt = sleepTimerEndsAt {
             let r = max(0, Int(endsAt.timeIntervalSinceNow))
-            text = String(format: " ● %d:%02d:%02d", r / 3600, (r % 3600) / 60, r % 60)
-        } else {
-            text = " ● Active"
+            let s = String(format: " 💤 %d:%02d:%02d", r / 3600, (r % 3600) / 60, r % 60)
+            title.append(NSAttributedString(string: s,
+                attributes: [.foregroundColor: NSColor.systemOrange, .font: font]))
         }
-        button.attributedTitle = NSAttributedString(
-            string: text,
-            attributes: [.foregroundColor: NSColor.systemGreen,
-                         .font: NSFont.menuBarFont(ofSize: 0)])
+        button.attributedTitle = title
     }
 
     private func refreshCountdown() {
@@ -239,8 +247,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let remaining = max(0, Int(session.endsAt.timeIntervalSinceNow))
             NSApp.dockTile.badgeLabel = String(format: "%d:%02d", remaining / 3600, (remaining % 3600) / 60)
         }
-        // Keep the green menu-bar countdown live each second.
-        applyActivityTitle()
+        // Keep the menu-bar countdowns live each second.
+        applyStatusTitle()
     }
 
     func rebuildMenu() {
