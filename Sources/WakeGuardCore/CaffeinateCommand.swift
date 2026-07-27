@@ -5,9 +5,10 @@ public enum CaffeinateCommand {
 
     public static func arguments(for config: SessionConfig, appPID: Int32) -> [String] {
         var args = ["-i"]
-        // Closed-lid mode means no display, so never assert display-stay-awake
-        // there — let the display sleep while the daemon keeps the system awake.
-        if config.displayPolicy == .keepOn && config.lidPolicy != .stayAwakeWhenClosed {
+        // Respect the display policy uniformly. For closed-lid sessions the app
+        // sets the policy based on whether an external display is connected
+        // (clamshell → keep it on; bare shut lid → let it sleep).
+        if config.displayPolicy == .keepOn {
             args.append("-d")
         }
         args += ["-t", String(Int(config.duration)), "-w", String(appPID)]

@@ -21,11 +21,11 @@ final class CaffeinateCommandTests: XCTestCase {
                        ["-i", "-t", "600", "-w", "7"])
     }
 
-    func testClosedLidNeverKeepsDisplayAwake() {
-        // A closed lid means no display — a closed-lid session must not pass -d
-        // even when the display policy is keepOn.
+    func testClosedLidRespectsDisplayPolicy() {
+        // Core respects the display policy uniformly; the app chooses .keepOn for
+        // closed-lid only when an external display is connected (clamshell).
         let config = SessionConfig(duration: 600, displayPolicy: .keepOn, lidPolicy: .stayAwakeWhenClosed)
         XCTAssertEqual(CaffeinateCommand.arguments(for: config, appPID: 7),
-                       ["-i", "-t", "600", "-w", "7"])
+                       ["-i", "-d", "-t", "600", "-w", "7"])
     }
 }

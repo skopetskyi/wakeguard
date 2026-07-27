@@ -10,8 +10,8 @@ Personal macOS keep-awake tool. Menu bar app + root daemon.
 - Optionally let the display sleep while the system stays awake ("Allow Display to Sleep"),
   plus a "Turn Display Off Now" action.
 - Optionally keep the Mac awake **with the lid closed** ("Keep Awake When Lid Closed") —
-  requires the wakeguardd daemon. Closed-lid mode lets the **display sleep** (a shut lid
-  has no display), regardless of the "Allow Display to Sleep" toggle.
+  requires the wakeguardd daemon. Closed-lid mode keeps an **external display on** if one
+  is connected (clamshell), and lets the display sleep otherwise (bare shut lid).
 - Keep presence tools (Slack, Teams) showing active — see below.
 - The Dock icon and menu-bar cup are always present while WakeGuard runs; the
   countdown-timer badge on the Dock icon appears only during an active session.

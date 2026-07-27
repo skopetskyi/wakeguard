@@ -8,10 +8,16 @@ so normal sleep is restored automatically if anything goes wrong.
 > (see [[Build, Install & Scripts]]). Without it, the app warns
 > **"NOT SAFE TO CLOSE LID"**.
 
-**Display:** closed-lid sessions always let the display sleep — a shut lid has no
-display. `CaffeinateCommand` omits `-d` whenever the lid policy is
-`stayAwakeWhenClosed`, regardless of the "Allow Display to Sleep" toggle. (The
-daemon's `disablesleep` keeps the *system* awake; it never forces the display on.)
+**Display:** closed-lid sessions decide the display policy from whether an
+**external monitor** is connected (`AppDelegate.hasExternalDisplay()` via
+`CGDisplayIsBuiltin`):
+- **External display connected (clamshell)** -> keep it on (`caffeinate -d`) — you're
+  using that screen with the lid shut.
+- **No external display (bare shut lid)** -> let the display sleep (no `-d`) — nothing
+  to show.
+
+Either way the daemon's `disablesleep` keeps the *system* awake; it never forces a
+display on. `CaffeinateCommand` just respects the policy the app passes.
 
 ## The lease (dead-man's switch)
 

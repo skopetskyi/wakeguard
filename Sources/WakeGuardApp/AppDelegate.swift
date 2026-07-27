@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import WakeGuardCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -77,15 +78,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             body: "Closed-lid mode on battery (\(percent)%). Will auto-stop below \(limits.softBatteryPercent)%.")
             }
         }
+        // Closed-lid display: keep the display on only in clamshell (an external
+        // display is connected — you're using it); with a bare shut lid there's
+        // nothing to show, so let the display sleep.
+        var effectiveDisplay = displayPolicy
+        if lidPolicy == .stayAwakeWhenClosed {
+            effectiveDisplay = Self.hasExternalDisplay() ? .keepOn : .allowOff
+        }
         let config = SessionConfig(duration: TimeInterval(minutes * 60),
-                                   displayPolicy: displayPolicy, lidPolicy: lidPolicy)
+                                   displayPolicy: effectiveDisplay, lidPolicy: lidPolicy)
         do {
             try controller.start(config)
             safetyMonitor.sessionDidStart()
             verifyClosedLidTookEffect()
             if lidPolicy == .stayAwakeWhenClosed {
+                let displayNote = effectiveDisplay == .keepOn
+                    ? "External display kept on."
+                    : "Display may sleep."
                 Notify.send(title: "WakeGuard",
-                            body: "Closed-lid mode active for \(minutes) min. Lid can be closed.")
+                            body: "Closed-lid mode active for \(minutes) min. Lid can be closed. \(displayNote)")
             }
             sessionStateChanged()
         } catch {
@@ -113,6 +124,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func sleepDisplayNow() {
         Shell.run("/usr/bin/pmset", ["displaysleepnow"])
+    }
+
+    /// True if any active display is NOT the built-in panel — i.e. an external
+    /// monitor is connected (so closing the lid means clamshell, not "no display").
+    /// Handles the case where the Mac is already in clamshell at start (built-in
+    /// off), which a simple screen-count check would miss.
+    private static func hasExternalDisplay() -> Bool {
+        var count: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &count) == .success, count > 0 else { return false }
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetActiveDisplayList(count, &displays, &count) == .success else { return false }
+        return displays.contains { CGDisplayIsBuiltin($0) == 0 }
     }
 
     // MARK: - Presence keep-awake (power assertion)
