@@ -29,6 +29,23 @@ the app so it dies with us (crash-safe). This needs **no Accessibility permissio
 > All methods need Accessibility permission; the volume HUD is the easiest way to
 > *see* whether events are getting through. Use **Test Activity (blip now)**.
 
+## Active hours (overnight guard)
+
+**Active Hours ▸** sets a daily window — in the **machine's local time zone** — in
+which simulation may run (`ActiveHours` in core, persisted in UserDefaults
+`activeHoursEnabled` / `activeHoursStartHour` / `activeHoursEndHour`):
+
+- **Limit to active hours** on/off, plus whole-hour **Start** and **End** pickers.
+  The end hour is **exclusive** (09:00-18:00 stops at 18:00); the window may **wrap
+  midnight** (22 -> 6 covers 22:00-05:59); start == end means all day.
+- While simulation runs, an enforcement `Timer` re-checks **every 60 s** and stops
+  simulation the moment the local clock leaves the window — releasing the keep-awake
+  assertion, so **the Mac can't stay awake overnight**.
+- Turning it on outside the window is allowed but short-lived: you get a heads-up
+  notification and it stops at the next check (within a minute).
+- Changing the window re-checks immediately, so narrowing it stops a running
+  simulation right away.
+
 ## On/off + indicator
 
 Simulate Activity is a plain **on/off** menu toggle — it runs until you turn it off.

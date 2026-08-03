@@ -44,6 +44,10 @@ use the separate **Sleep Timer** below.
   the app tells you the permission is missing and pops the grant dialog.
 - **Pick the method** from **Activity Method ▸**: Volume tap (default, shows the
   HUD), Mouse nudge (silent), or F16/F17/F18/F19 (silent). All need Accessibility.
+- **Active Hours ▸** — set a daily window in **local time** (e.g. 09:00–18:00, end
+  hour exclusive; windows may wrap midnight). Outside it, activity simulation stops
+  itself within a minute, so leaving it on can't keep the Mac awake overnight.
+  Enabling it outside the window is allowed but stops again at the next check.
 - **Grant keeps resetting on rebuild?** The ad-hoc signature changes each
   `build-app.sh`, which invalidates the Accessibility grant — the toggle can even
   look "on" while the new binary no longer matches. Permanent fix: run

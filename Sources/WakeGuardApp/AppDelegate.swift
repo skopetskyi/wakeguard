@@ -29,10 +29,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var sleepTimerEndsAt: Date?
     private var sleepTimer: Timer?
 
+    // Active hours: the daily local-time window in which activity simulation may
+    // run. A simulation started (or left running) outside it is stopped by the
+    // enforcement timer, so the Mac never stays awake overnight.
+    private(set) var activeHours = ActiveHours()
+    private var activeHoursTimer: Timer?
+    /// How often the window is re-checked while simulation runs.
+    private static let activeHoursCheckInterval: TimeInterval = 60
+    private static let activeHoursEnabledKey = "activeHoursEnabled"
+    private static let activeHoursStartKey = "activeHoursStartHour"
+    private static let activeHoursEndKey = "activeHoursEndHour"
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Always a regular app: the Dock icon is present whenever WakeGuard runs.
         NSApp.setActivationPolicy(.regular)
         loadActivityMethod()
+        loadActiveHours()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         refreshStatusIcon()
 
@@ -159,6 +171,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBuilder.simulateActivity = true
         startPresenceKeepAwake()
         activitySimulator.start()
+        startActiveHoursEnforcement()
+        if activeHours.isEnabled && !activeHours.contains(Date()) {
+            // Started outside the window: allowed, but the enforcement timer will
+            // shut it down shortly so it can't run overnight.
+            Notify.send(title: "WakeGuard",
+                        body: "Heads up: it's outside your active hours (\(activeHours.displayLabel)) — activity simulation will stop again within a minute.")
+        }
         if AccessibilityPermission.isTrusted {
             Notify.send(title: "WakeGuard",
                         body: "Activity simulation on — the volume HUD will blip each minute (presence stays active).")
@@ -172,6 +191,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         refreshStatusIcon()
         rebuildMenu()
+    }
+
+    // MARK: - Active hours (local-time window for activity simulation)
+
+    private func loadActiveHours() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: Self.activeHoursEnabledKey) != nil else { return }
+        activeHours = ActiveHours(isEnabled: defaults.bool(forKey: Self.activeHoursEnabledKey),
+                                  startHour: defaults.integer(forKey: Self.activeHoursStartKey),
+                                  endHour: defaults.integer(forKey: Self.activeHoursEndKey))
+    }
+
+    private func saveActiveHours() {
+        let defaults = UserDefaults.standard
+        defaults.set(activeHours.isEnabled, forKey: Self.activeHoursEnabledKey)
+        defaults.set(activeHours.startHour, forKey: Self.activeHoursStartKey)
+        defaults.set(activeHours.endHour, forKey: Self.activeHoursEndKey)
+    }
+
+    /// Menu actions: toggle the window on/off and set its bounds. Changing the
+    /// window re-checks immediately, so narrowing it stops a running simulation.
+    func setActiveHoursEnabled(_ enabled: Bool) {
+        activeHours.isEnabled = enabled
+        saveActiveHours()
+        enforceActiveHours()
+        rebuildMenu()
+    }
+
+    func setActiveHoursStart(_ hour: Int) {
+        activeHours = ActiveHours(isEnabled: activeHours.isEnabled,
+                                  startHour: hour, endHour: activeHours.endHour)
+        saveActiveHours()
+        enforceActiveHours()
+        rebuildMenu()
+    }
+
+    func setActiveHoursEnd(_ hour: Int) {
+        activeHours = ActiveHours(isEnabled: activeHours.isEnabled,
+                                  startHour: activeHours.startHour, endHour: hour)
+        saveActiveHours()
+        enforceActiveHours()
+        rebuildMenu()
+    }
+
+    /// Runs while simulation is active; stops it once the local clock leaves the
+    /// window (checked every minute, so it never runs on past the window's end).
+    private func startActiveHoursEnforcement() {
+        activeHoursTimer?.invalidate()
+        let timer = Timer(timeInterval: Self.activeHoursCheckInterval, repeats: true) { [weak self] _ in
+            self?.enforceActiveHours()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        activeHoursTimer = timer
+    }
+
+    private func stopActiveHoursEnforcement() {
+        activeHoursTimer?.invalidate()
+        activeHoursTimer = nil
+    }
+
+    /// Stop activity simulation if the current local time is outside the window.
+    private func enforceActiveHours() {
+        guard MenuBuilder.simulateActivity else { return }
+        guard !activeHours.contains(Date()) else { return }
+        stopActivitySimulation()
+        Notify.send(title: "WakeGuard",
+                    body: "Outside active hours (\(activeHours.displayLabel)) — activity simulation stopped.")
     }
 
     /// Restore the saved activity method (or the default) into emitter + menu.
@@ -216,6 +302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBuilder.simulateActivity = false
         activitySimulator.stop()
         stopPresenceKeepAwake()
+        stopActiveHoursEnforcement()
         refreshStatusIcon()
         rebuildMenu()
     }

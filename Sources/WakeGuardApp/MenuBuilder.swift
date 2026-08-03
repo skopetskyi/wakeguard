@@ -62,6 +62,7 @@ enum MenuBuilder {
         activityToggle.state = simulateActivity ? .on : .off
         menu.addItem(activityToggle)
         menu.addItem(activityMethodMenuItem(for: app))
+        menu.addItem(activeHoursMenuItem(for: app))
         menu.addItem(item(title: "Test Activity (blip now)",
                           action: #selector(AppDelegate.menuTestActivity), target: app))
 
@@ -104,6 +105,50 @@ enum MenuBuilder {
         let header = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         header.isEnabled = false
         return header
+    }
+
+    /// "Active Hours ▸" submenu — the daily local-time window in which activity
+    /// simulation may run; outside it the app stops simulating within a minute.
+    private static func activeHoursMenuItem(for app: AppDelegate) -> NSMenuItem {
+        let hours = app.activeHours
+        let parent = NSMenuItem(title: "Active Hours: \(hours.displayLabel)",
+                                action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+
+        let toggle = item(title: "Limit to active hours",
+                          action: #selector(AppDelegate.menuToggleActiveHours), target: app)
+        toggle.state = hours.isEnabled ? .on : .off
+        submenu.addItem(toggle)
+        submenu.addItem(.separator())
+
+        func hourSubmenu(title: String, selected: Int, action: Selector) -> NSMenuItem {
+            let parent = NSMenuItem(title: "\(title): \(String(format: "%02d:00", selected))",
+                                    action: nil, keyEquivalent: "")
+            let sub = NSMenu()
+            for hour in 0...23 {
+                let entry = item(title: String(format: "%02d:00", hour), action: action, target: app)
+                entry.tag = hour
+                entry.state = (hour == selected) ? .on : .off
+                sub.addItem(entry)
+            }
+            parent.submenu = sub
+            parent.isEnabled = hours.isEnabled
+            return parent
+        }
+
+        submenu.addItem(hourSubmenu(title: "Start", selected: hours.startHour,
+                                    action: #selector(AppDelegate.menuSetActiveHoursStart(_:))))
+        submenu.addItem(hourSubmenu(title: "End", selected: hours.endHour,
+                                    action: #selector(AppDelegate.menuSetActiveHoursEnd(_:))))
+
+        let note = NSMenuItem(title: "Local time; stops simulation outside the window",
+                              action: nil, keyEquivalent: "")
+        note.isEnabled = false
+        submenu.addItem(.separator())
+        submenu.addItem(note)
+
+        parent.submenu = submenu
+        return parent
     }
 
     /// "Activity Method ▸" submenu — choose how presence is kept active
@@ -175,6 +220,18 @@ extension AppDelegate {
     @objc func menuSelectActivityMethod(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         selectActivityMethod(id: id)
+    }
+
+    @objc func menuToggleActiveHours() {
+        setActiveHoursEnabled(!activeHours.isEnabled)
+    }
+
+    @objc func menuSetActiveHoursStart(_ sender: NSMenuItem) {
+        setActiveHoursStart(sender.tag)
+    }
+
+    @objc func menuSetActiveHoursEnd(_ sender: NSMenuItem) {
+        setActiveHoursEnd(sender.tag)
     }
 
     @objc func menuStartSleepPreset(_ sender: NSMenuItem) {
